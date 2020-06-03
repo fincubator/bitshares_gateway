@@ -1,0 +1,7 @@
+bitshares:
+  gateway_account: finteh
+  keys:
+    active: 5....
+    memo: 5....
+  nodes:
+    - "wss://btsws.roelandp.nl/ws"
