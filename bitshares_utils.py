@@ -1,4 +1,4 @@
-import json
+import asyncio
 
 from bitshares.aio import BitShares
 from bitshares.aio.account import Account
@@ -7,6 +7,9 @@ from bitshares.aio.amount import Amount
 from bitsharesbase.operations import Asset_issue
 from bitsharesbase.signedtransactions import Signed_Transaction
 from bitshares.aio.instance import set_shared_bitshares_instance, shared_bitshares_instance
+
+
+from config import BITSHARES_BLOCK_TIME
 
 
 async def init_bitshares(account, node=None, keys=None, loop=None) -> BitShares:
@@ -47,3 +50,21 @@ async def asset_transfer(**kwargs):
     instance = shared_bitshares_instance()
     instance.nobroadcast = True
     return await instance.transfer(**kwargs)
+
+
+async def await_new_account_ops(account=None, last_op: int = 0) -> list:
+    """Wait for new operations on (gateway) account"""
+
+    instance = shared_bitshares_instance()
+    if not account:
+        account = instance.config['default_account']
+
+    account = await Account(account)
+
+    while True:
+        history_agen = account.history(last=last_op)
+        new_ops = [op async for op in history_agen]
+        if new_ops:
+            return new_ops
+        else:
+            await asyncio.sleep(BITSHARES_BLOCK_TIME)

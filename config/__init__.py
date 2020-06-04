@@ -1,6 +1,7 @@
 import yaml
 from pathlib import Path
 
+from config.const import *
 
 project_root_dir = Path(__file__).parent.parent
 

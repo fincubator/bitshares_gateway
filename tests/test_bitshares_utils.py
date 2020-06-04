@@ -141,8 +141,7 @@ async def test_asset_transfer_broadcast():
     _transfer = await asset_transfer(account=testnet_user_account,
                                      to=testnet_gateway_account,
                                      amount=TEST_ETH_AMOUNT,
-                                     asset=test_eth_asset,
-                                     memo="dex:hello")
+                                     asset=test_eth_asset)
     transfer = await broadcast_tx(_transfer)
 
     new_gateway_eth_balance = await gateway_instance.balance(test_eth_asset)
@@ -153,3 +152,12 @@ async def test_asset_transfer_broadcast():
     assert isinstance(transfer, dict)
 
     await instance.rpc.connection.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_await_new_account_ops():
+    await init_bitshares(account=testnet_gateway_account,
+                         node=testnet_bitshares_nodes,
+                         keys=[testnet_user_active, testnet_user_memo])
+    new_ops = await await_new_account_ops()
+    assert isinstance(new_ops, list)
