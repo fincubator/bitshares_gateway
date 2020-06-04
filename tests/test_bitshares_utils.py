@@ -111,6 +111,17 @@ async def test_asset_burn_broadcast():
 
 
 @pytest.mark.asyncio
+async def test_read_memo():
+    instance = await init_bitshares(account=testnet_gateway_account,
+                                    node=testnet_bitshares_nodes,
+                                    keys=[testnet_user_active, testnet_user_memo])
+
+    assert (await read_memo(test_memo_dict)) == test_memo_string
+
+    await instance.rpc.connection.disconnect()
+
+
+@pytest.mark.asyncio
 async def test_transfer_nobroadcast():
     instance = await init_bitshares(account=testnet_gateway_account,
                                     node=testnet_bitshares_nodes,
@@ -141,7 +152,8 @@ async def test_asset_transfer_broadcast():
     _transfer = await asset_transfer(account=testnet_user_account,
                                      to=testnet_gateway_account,
                                      amount=TEST_ETH_AMOUNT,
-                                     asset=test_eth_asset)
+                                     asset=test_eth_asset,
+                                     memo=test_memo_string)
     transfer = await broadcast_tx(_transfer)
 
     new_gateway_eth_balance = await gateway_instance.balance(test_eth_asset)
@@ -150,7 +162,7 @@ async def test_asset_transfer_broadcast():
     # When it will be implemented, need to remove .amount
     assert (new_gateway_eth_balance.amount - old_gateway_eth_balance.amount) == TEST_ETH_AMOUNT
     assert isinstance(transfer, dict)
-
+    assert (await read_memo(transfer["operations"][0][1]['memo'])) == test_memo_string
     await instance.rpc.connection.disconnect()
 
 

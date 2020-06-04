@@ -1,17 +1,20 @@
 import asyncio
+import logging
 
 from bitshares.aio import BitShares
 from bitshares.aio.account import Account
 from bitshares.aio.asset import Asset
 from bitshares.aio.amount import Amount
-from bitsharesbase.operations import Asset_issue
-from bitsharesbase.signedtransactions import Signed_Transaction
+from bitshares.aio.memo import Memo
 from bitshares.aio.instance import set_shared_bitshares_instance, shared_bitshares_instance
 
 from config import BITSHARES_BLOCK_TIME
 
 
-async def init_bitshares(account: str, node: str or list = None, keys: list = None, loop =None) -> BitShares:
+logging.basicConfig(level=logging.INFO)
+
+
+async def init_bitshares(account: str, node: str or list = None, keys: list = None, loop=None) -> BitShares:
     """ Create bitshares aio.instance, append it to loop and set as shared """
 
     kwargs = dict(node=node, keys=keys, loop=loop, )
@@ -66,3 +69,11 @@ async def await_new_account_ops(account: str = None, last_op: int = 0) -> list:
             return new_ops
         else:
             await asyncio.sleep(BITSHARES_BLOCK_TIME)
+
+
+async def read_memo(memo_obj: dict) -> str:
+    """Decrypt memo object that was sent with operation TO gateway's account;
+        account private memo key must be in the instance's key storage"""
+
+    memo_reader = await Memo()
+    return memo_reader.decrypt(memo_obj)
