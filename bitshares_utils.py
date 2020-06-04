@@ -8,11 +8,10 @@ from bitsharesbase.operations import Asset_issue
 from bitsharesbase.signedtransactions import Signed_Transaction
 from bitshares.aio.instance import set_shared_bitshares_instance, shared_bitshares_instance
 
-
 from config import BITSHARES_BLOCK_TIME
 
 
-async def init_bitshares(account, node=None, keys=None, loop=None) -> BitShares:
+async def init_bitshares(account: str, node: str or list = None, keys: list = None, loop =None) -> BitShares:
     """ Create bitshares aio.instance, append it to loop and set as shared """
 
     kwargs = dict(node=node, keys=keys, loop=loop, )
@@ -23,35 +22,35 @@ async def init_bitshares(account, node=None, keys=None, loop=None) -> BitShares:
     return bitshares_instance
 
 
-async def broadcast_tx(tx):
+async def broadcast_tx(tx: dict) -> dict:
     instance: BitShares = shared_bitshares_instance()
     instance.nobroadcast = False
     tx_res = await instance.broadcast(tx)
     return tx_res
 
 
-async def asset_issue(symbol, amount, to, **kwargs):
+async def asset_issue(symbol: str, amount: float, to: str, **kwargs) -> dict:
     asset: Asset = await Asset(symbol)
     asset.blockchain.nobroadcast = True
     return await asset.issue(amount=amount, to=to, **kwargs)
 
 
-async def asset_burn(amount, symbol=None, **kwargs) -> dict:
+async def asset_burn(amount: Amount or int or float,
+                     symbol: str = None, **kwargs) -> dict:
     instance = shared_bitshares_instance()
     instance.nobroadcast = True
     if not isinstance(amount, Amount) and type(amount) in (int, float):
         amount = await Amount(amount, symbol)
-    burn_tx = await instance.reserve(amount, **kwargs)
-    return burn_tx
+    return await instance.reserve(amount, **kwargs)
 
 
-async def asset_transfer(**kwargs):
+async def asset_transfer(**kwargs) -> dict:
     instance = shared_bitshares_instance()
     instance.nobroadcast = True
     return await instance.transfer(**kwargs)
 
 
-async def await_new_account_ops(account=None, last_op: int = 0) -> list:
+async def await_new_account_ops(account: str = None, last_op: int = 0) -> list:
     """Wait for new operations on (gateway) account"""
 
     instance = shared_bitshares_instance()

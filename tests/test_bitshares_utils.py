@@ -156,8 +156,10 @@ async def test_asset_transfer_broadcast():
 
 @pytest.mark.asyncio
 async def test_await_new_account_ops():
-    await init_bitshares(account=testnet_gateway_account,
-                         node=testnet_bitshares_nodes,
-                         keys=[testnet_user_active, testnet_user_memo])
+    instance = await init_bitshares(account=testnet_gateway_account,
+                                    node=testnet_bitshares_nodes,
+                                    keys=[testnet_user_active, testnet_user_memo])
     new_ops = await await_new_account_ops()
     assert isinstance(new_ops, list)
+
+    await instance.rpc.connection.disconnect()
