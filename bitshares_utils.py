@@ -14,9 +14,11 @@ from config import BITSHARES_BLOCK_TIME
 logging.basicConfig(level=logging.INFO)
 
 
-async def init_bitshares(account: str, node: str or list = None, keys: list = None, loop=None) -> BitShares:
+async def init_bitshares(account: str = None, node: str or list = None, keys: list = None, loop=None) -> BitShares:
     """ Create bitshares aio.instance, append it to loop and set as shared """
-
+    if not account:
+        raise Exception("You need to provide and gateway account. Gateway instance can not work without it!\n"
+                        "Check that your account is owner of asset that your instance will distribute!")
     kwargs = dict(node=node, keys=keys, loop=loop, )
     bitshares_instance = BitShares(**kwargs)
     set_shared_bitshares_instance(bitshares_instance)
