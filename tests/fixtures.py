@@ -8,14 +8,14 @@ testnet_user_account = "fincubator-user-test1"
 testnet_user_active = "5JZCdWTdAsHvxYquGScmuekUnEpvEsk6DpPhvbuw5KL64qeiNFc"
 testnet_user_memo = "5KF8Qh5gvKmw4XcB9TtLqG9uX8QcTGHBD8WZukQzHbfVY6ypTNd"
 
-test_gateway_prefix = "FINTEHTEST"
-test_eth_asset = f"{test_gateway_prefix}.ETH"
-test_core_asset = "TEST"
+testnet_gateway_prefix = "FINTEHTEST"
+testnet_eth_asset = f"{testnet_gateway_prefix}.ETH"
+testnet_core_asset = "TEST"
 
-TEST_ETH_AMOUNT = 1
+TESTNET_ETH_AMOUNT = 1
 
-test_memo_string = "testmemo"
-test_memo_dict = {'from': 'TEST8FwnsU4vSKrnQE9i788tZBzaAEeUdJKrV55AJ7WW6FF9do6mnH',
+testnet_memo_string = "testmemo"
+testnet_memo_dict = {'from': 'TEST8FwnsU4vSKrnQE9i788tZBzaAEeUdJKrV55AJ7WW6FF9do6mnH',
              'message': '3edec79f004a62f73b1a28e05be1a06d',
              'nonce': 14809769738887610202,
              'prefix': 'TEST',
