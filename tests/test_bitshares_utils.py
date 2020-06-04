@@ -175,3 +175,15 @@ async def test_await_new_account_ops():
     assert isinstance(new_ops, list)
 
     await instance.rpc.connection.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_validate_op():
+    instance = await init_bitshares(account=testnet_gateway_account,
+                                    node=testnet_bitshares_nodes,
+                                    keys=[testnet_user_active, testnet_user_memo])
+    new_ops = await await_new_account_ops()
+    for op in new_ops:
+        await validate_op(op)
+
+    await instance.rpc.connection.disconnect()
