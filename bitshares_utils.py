@@ -42,7 +42,6 @@ async def asset_burn(amount, symbol=None, **kwargs) -> dict:
     if not isinstance(amount, Amount) and type(amount) in (int, float):
         amount = await Amount(amount, symbol)
     burn_tx = await instance.reserve(amount, **kwargs)
-    print(burn_tx)
     return burn_tx
 
 
