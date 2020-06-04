@@ -5,8 +5,10 @@ from bitshares.aio import BitShares
 from bitshares.aio.account import Account
 from bitshares.aio.asset import Asset
 from bitshares.aio.amount import Amount
+from bitshares.aio.blockchain import Block
 from bitshares.aio.memo import Memo
 from bitshares.aio.instance import set_shared_bitshares_instance, shared_bitshares_instance
+from graphenecommon.exceptions import BlockDoesNotExistsException
 
 from config import BITSHARES_BLOCK_TIME
 
@@ -70,6 +72,27 @@ async def await_new_account_ops(account: str = None, last_op: int = 0) -> list:
             await asyncio.sleep(BITSHARES_BLOCK_TIME)
 
 
+async def parse_blocks(start_block_num: int):
+    """
+    Wait for new blocks in BitShares chain and parse transactions related with gateway
+
+    :param start_block_num: First Block that will be processed. Means that Block with number (start_block_num -1)
+                            is already processed
+    :return:
+    """
+
+    while True:
+        try:
+            block: Block = await Block(start_block_num)
+            if block["transactions"]:
+                logging.info(f"Start to parse operations")
+                # TODO call validate_op()
+
+            start_block_num += 1
+        except BlockDoesNotExistsException:
+            await asyncio.sleep(BITSHARES_BLOCK_TIME)
+
+
 async def read_memo(memo_obj: dict) -> str:
     """Decrypt memo object that was sent with operation TO gateway's account;
         account private memo key must be in the instance's key storage"""
@@ -80,7 +103,6 @@ async def read_memo(memo_obj: dict) -> str:
 
 async def validate_op(op: dict):
     """Parse BitShares operation and process it"""
-    instance = shared_bitshares_instance()
 
     # Transfer
     if op['op'][0] == 0:
