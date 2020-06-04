@@ -104,8 +104,13 @@ async def read_memo(memo_obj: dict) -> str:
 async def validate_op(op: dict):
     """Parse BitShares operation and process it"""
 
-    # Transfer
-    if op['op'][0] == 0:
+    # Check operations types
+    # for more info about bithsares operationsIds:
+    # https://github.com/bitshares/python-bitshares/blob/master/bitsharesbase/operationids.py
+    op_type = op['op'][0]
+
+    # Transfer type is 0
+    if op_type == 0:
 
         from_user = await Account(op['op'][1]['from'])
         to = await Account(op['op'][1]['to'])
@@ -114,8 +119,8 @@ async def validate_op(op: dict):
 
         logging.info(f"{from_user.name} transfer {amount} to {to.name} with memo `{memo}`")
 
-    # Issue asset
-    elif op['op'][0] == 14:
+    # Issue asset type is 14
+    elif op_type == 14:
         issuer = await Account(op['op'][1]['issuer'])
         amount = await Amount(op['op'][1]['asset_to_issue'])
         issue_to_account = await Account(op['op'][1]['issue_to_account'])
