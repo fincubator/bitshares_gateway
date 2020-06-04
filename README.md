@@ -5,6 +5,7 @@
 ```shell script
 git clone https://github.com/fincubator/bitshares_gateway
 cd bitshares_gateway/
+cp config/config.yml.example config/config.yml
 ```
 
 ##### Using bitshares_utils:

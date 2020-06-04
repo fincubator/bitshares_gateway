@@ -1,7 +1,18 @@
 bitshares:
-  gateway_account: finteh
+  # all bitshares connections stuff
+
+  nodes:
+    - "wss://btsws.roelandp.nl/ws"
+
+gateway:
+  #Asset for distribution
+  asset: FINTEH.ETH
+
+  # Account for distribution (asset owner)
+  account: finteh
+
+  # Gateway's account private keys
+  # Get it with unlocked account in bitsharesUI->Advanced->Permissions->View Key
   keys:
     active: 5....
     memo: 5....
-  nodes:
-    - "wss://btsws.roelandp.nl/ws"
