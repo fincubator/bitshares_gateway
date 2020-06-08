@@ -54,8 +54,14 @@ async def asset_transfer(**kwargs) -> dict:
     return await instance.transfer(**kwargs)
 
 
-async def await_new_account_ops(account: str = None, last_op: int = 0) -> list:
-    """Wait for new operations on (gateway) account"""
+async def await_new_account_ops(account: str = None, last_op: int = 0) -> object:
+    """
+    Wait for new operations on (gateway) account
+
+    :param account: bitshares account to parse
+    :param last_op: number or last processed operation. It will be NOT included in first cycle iteration
+    :return: Reversed iterator of account's operations. Gateway must process operations in order older->newer
+    """
 
     instance = shared_bitshares_instance()
     if not account:
@@ -67,7 +73,7 @@ async def await_new_account_ops(account: str = None, last_op: int = 0) -> list:
         history_agen = account.history(last=last_op)
         new_ops = [op async for op in history_agen]
         if new_ops:
-            return new_ops
+            return reversed(new_ops)
         else:
             await asyncio.sleep(BITSHARES_BLOCK_TIME)
 
@@ -117,7 +123,8 @@ async def validate_op(op: dict):
         amount = await Amount(op['op'][1]['amount'])
         memo = await read_memo(op['op'][1].get('memo'))
 
-        logging.info(f"{from_user.name} transfer {amount} to {to.name} with memo `{memo}`")
+        # This should be just logging, need to return JSON Schema instance with op_data
+        return f"{from_user.name} transfer {amount} to {to.name} with memo `{memo}`"
 
     # Issue asset type is 14
     elif op_type == 14:
@@ -126,7 +133,8 @@ async def validate_op(op: dict):
         issue_to_account = await Account(op['op'][1]['issue_to_account'])
         memo = await read_memo(op['op'][1].get('memo'))
 
-        logging.info(f"{issuer.name} issue {amount} to {issue_to_account.name} with memo `{memo}`")
+        # This should be just logging, need to return JSON Schema instance with op_data
+        return f"{issuer.name} issue {amount} to {issue_to_account.name} with memo `{memo}`"
 
     # Any other types of operations are not interested.
     else:
