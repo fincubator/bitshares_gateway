@@ -136,7 +136,12 @@ async def validate_op(op: dict):
         # This should be just logging, need to return JSON Schema instance with op_data
         return f"{issuer.name} issue {amount} to {issue_to_account.name} with memo `{memo}`"
 
-    # Any other types of operations are not interested.
+    # Asset burn type is 15
+    elif op_type == 15:
+        amount_to_reserve = await Amount(op['op'][1]['amount_to_reserve'])
+        payer = await Account(op['op'][1]['payer'])
+        return f"{payer.name} burn {amount_to_reserve}"
+
+    # Any other types of operations are not interested. Return only int
     else:
-        # TODO here need to update last_operation field in database when it will be implemented
         return
