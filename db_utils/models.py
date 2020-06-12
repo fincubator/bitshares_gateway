@@ -65,7 +65,7 @@ class BitsharesOperation(Base):
     pk = sa.Column(sa.Integer, primary_key=True, index=True)
     op_id = sa.Column(sa.Integer, unique=True)
     # order = ... # ???
-    op_type = sa.Column(sa.String)
+    op_type = sa.Column(sa.Integer)
 
     broadcaster_account = sa.Column(sa.String)
     target_account = sa.Column(sa.String)
