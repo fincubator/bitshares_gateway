@@ -54,7 +54,7 @@ async def asset_transfer(**kwargs) -> dict:
     return await instance.transfer(**kwargs)
 
 
-async def await_new_account_ops(account: str = None, last_op: int = 0) -> object:
+async def wait_new_account_ops(account: str = None, last_op: int = 0) -> list:
     """
     Wait for new operations on (gateway) account
 
@@ -73,7 +73,7 @@ async def await_new_account_ops(account: str = None, last_op: int = 0) -> object
         history_agen = account.history(last=last_op)
         new_ops = [op async for op in history_agen]
         if new_ops:
-            return reversed(new_ops)
+            return list(reversed(new_ops))
         else:
             await asyncio.sleep(BITSHARES_BLOCK_TIME)
 
