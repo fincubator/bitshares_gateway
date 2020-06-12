@@ -10,3 +10,8 @@ cfg = yaml.safe_load(open(f"{project_root_dir}/config/config.yml", 'r'))
 zmq_cfg = cfg["zqm_server"]
 
 gateway_cfg = cfg["gateway"]
+
+pg_config = cfg["postgres"]
+sql_conn_url = f"postgres+psycopg2://{pg_config['user']}:{pg_config['password']}" \
+               f"@" \
+               f"{pg_config['host']}:{pg_config['port']}/{pg_config['database']}"

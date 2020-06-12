@@ -1,1 +1,3 @@
 BITSHARES_BLOCK_TIME = 3
+
+CONTROLCENTERURL = "http://0.0.0.0:8080/api/v1/coins/"
