@@ -51,7 +51,7 @@ class Order(Base):
     out_tx_coin = sa.Column(sa.String)
     out_tx_to = sa.Column(sa.String)
     out_tx_from = sa.Column(sa.String)
-    out_tx_hash = sa.Column(sa.String)
+    out_tx_hash = sa.Column(sa.String, unique=True)
     out_tx_amount = sa.Column(sa.Numeric)
     out_tx_status = sa.Column(sa.Integer)
     out_tx_confirmations = sa.Column(sa.Integer)
