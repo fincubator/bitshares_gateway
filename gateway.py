@@ -2,8 +2,9 @@ from bitshares_utils import *
 from config import gateway_cfg
 
 
-#  Mock for database executor module
-db = print
+#  Mock for database and zmq executor module
+db_exec = print
+zeromq_send = print
 
 
 async def watch_account_history(bitshares_instance):
@@ -16,6 +17,7 @@ async def watch_account_history(bitshares_instance):
     logging.info(f"Watching {bitshares_instance.config['default_account']} for new operations started")
 
     last_op = 1  # get last op from db
+
     while True:
 
         new_ops = await await_new_account_ops(last_op=last_op)
@@ -24,24 +26,41 @@ async def watch_account_history(bitshares_instance):
 
         logging.info("Find new ops")
         for op in new_ops:
-
             # BitShares have '1.11.1234567890' so need to retrieve integer ID of operation
-            last_op = op['id'].split('.')[2]
+            op_id = op['id'].split('.')[2]
+
+            # Refresh last account operations in database
+            db_exec(last_op)
+
+            last_op = op_id
 
             op_result = await validate_op(op)
             if op_result:
-                db(op_result)
+                if op_result:
+
+                    # if operation is relevant, add it to database and tell banker about it
+                    db_exec(op_result)
+                    zeromq_send(op_result)
 
 
-async def outer_loop(bitshares_instance):
+async def watch_banker(bitshares_instance):
     """Await Banker"""
 
     while True:
         logging.info(f"Await for Banker (Booker :P) commands")
         await asyncio.sleep(1)
+        # if receive new tx from banker:
+            # check it's status
+            # add to database with State 0
+
+
+async def watch_unconfirmed_transactions(bitshares_instance):
+    # Grep unconfirmed transactions from base and try to confirm it
+    pass
 
 
 async def gw_loop():
+    """Main gateway loop"""
     logging.basicConfig(level=logging.INFO)
 
     instance = await init_bitshares(account=gateway_cfg["account"],
@@ -51,11 +70,10 @@ async def gw_loop():
                  f"distribution account: {instance.config['default_account']}\n"
                  f"Connected to node: {instance.rpc.url}")
 
+    # TODO get settings from control_center
+
     await asyncio.gather(
-        asyncio.create_task(outer_loop(instance)),
-        asyncio.create_task(watch_account_history(instance))
+        asyncio.create_task(watch_banker(instance)),
+        asyncio.create_task(watch_account_history(instance)),
+        asyncio.create_task(watch_unconfirmed_transactions(instance))
     )
-
-
-if __name__ == '__main__':
-    asyncio.run(gw_loop())
