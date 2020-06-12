@@ -2,11 +2,23 @@
 
 
 ## Install
+##### Manually
 ```shell script
 git clone https://github.com/fincubator/bitshares_gateway
 cd bitshares_gateway/
 cp config/config.yml.example config/config.yml
+# fill config.yml with your values
+python3 -m pipenv shell
+pipenv install
 ```
+
+##### Deploy with docker
+```
+Coming soon...
+```
+## How it works
+Fast...
+
 
 ##### Using bitshares_utils:
 
