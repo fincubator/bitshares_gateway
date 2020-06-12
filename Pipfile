@@ -15,6 +15,11 @@ pyyaml = "*"
 jsonrpcserver = "*"
 jsonrpcclient = "*"
 aiohttp = "~=3.6.2"
+marshmallow-dataclass = "*"
+sqlalchemy = "*"
+alembic = "*"
+psycopg2 = "*"
+aiopg = "*"
 
 [requires]
 python_version = "3.7"
