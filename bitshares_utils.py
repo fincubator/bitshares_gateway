@@ -5,7 +5,7 @@ from bitshares.aio import BitShares
 from bitshares.aio.account import Account
 from bitshares.aio.asset import Asset
 from bitshares.aio.amount import Amount
-from bitshares.aio.blockchain import Block
+from bitshares.aio.blockchain import Block, Blockchain
 from bitshares.aio.memo import Memo
 from bitshares.aio.instance import set_shared_bitshares_instance, shared_bitshares_instance
 from graphenecommon.exceptions import BlockDoesNotExistsException
@@ -91,12 +91,17 @@ async def parse_blocks(start_block_num: int):
         try:
             block: Block = await Block(start_block_num)
             if block["transactions"]:
-                logging.info(f"Start to parse operations")
+                logging.info(f"Start to parse operations in block {block}")
                 # TODO call validate_op()
 
             start_block_num += 1
         except BlockDoesNotExistsException:
             await asyncio.sleep(BITSHARES_BLOCK_TIME)
+
+
+async def get_current_block_num():
+    bc = await Blockchain(mode="irreversible")
+    return await bc.get_current_block_num()
 
 
 async def read_memo(memo_obj: dict) -> str:
@@ -145,3 +150,11 @@ async def validate_op(op: dict):
     # Any other types of operations are not interested. Return only int
     else:
         return
+
+
+async def get_last_op(account: str) -> int:
+    account_instance = await Account(account)
+    history_agen = account_instance.history(limit=1)
+
+    # BitShares have '1.11.1234567890' operationID format so need to retrieve integer ID of operation
+    return int([op async for op in history_agen][0]['id'].split('.')[2])

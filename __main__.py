@@ -1,4 +1,5 @@
 import asyncio
 from gateway import *
 
-asyncio.run(gw_loop())
+gw = Gateway()
+asyncio.run(gw.main_loop())
