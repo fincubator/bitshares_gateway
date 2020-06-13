@@ -6,11 +6,7 @@ from .fixtures import *
 
 
 async def get_test_engine():
-    engine = await init_database(host='0.0.0.0',
-                                 port=5432,
-                                 user="bitshares_gw_user",
-                                 password='bitshares_gw_pass',
-                                 database='bitshares_gw_db')
+    engine = await init_database()
     return engine
 
 
