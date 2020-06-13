@@ -1,16 +1,16 @@
 import logging
 
 import aiopg.sa
-from aiopg.sa import SAConnection as SAConn
+from aiopg.sa import SAConnection as SAConn, Engine
 from sqlalchemy.sql import insert, delete, update, select
 from db_utils.models import GatewayAccount, Order, BitsharesOperation
 
 from config import pg_config
 
 
-async def init_database(**kwargs):
+async def init_database(**kwargs) -> Engine:
+    """Async engine to execute clients requests"""
     kwargs = pg_config if not kwargs else kwargs
-    # Async engine to execute clients requests
     engine = await aiopg.sa.create_engine(**kwargs)
     return engine
 
@@ -23,7 +23,7 @@ async def get_gateway_account(conn: SAConn, account_name: str):
 
 async def add_gateway_account(conn: SAConn, **kwargs):
     try:
-        cursor = await conn.execute(insert(GatewayAccount).values(**kwargs))
+        await conn.execute(insert(GatewayAccount).values(**kwargs))
         return True
     except:
         return False
