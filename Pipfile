@@ -4,22 +4,24 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+pytest = "~=5.4.2"
+pytest-asyncio = "~=0.12.0"
+pytest-cov = "~=2.10.0"
 
 [packages]
 bitshares = "~=0.5.1"
-pytest = "~=5.4.2"
-pytest-asyncio = "~=0.12.0"
-msgpack = "*"
-aiozmq = "*"
-pyyaml = "*"
-jsonrpcserver = "*"
-jsonrpcclient = "*"
+msgpack = "~=1.0.0"
+aiozmq = "~=0.9.0"
+pyyaml = "~=5.3.1"
+jsonrpcserver = "~=4.1.3"
+jsonrpcclient = "~=3.3.6"
 aiohttp = "~=3.6.2"
-marshmallow-dataclass = "*"
-sqlalchemy = "*"
-alembic = "*"
-psycopg2 = "*"
-aiopg = "*"
+marshmallow-dataclass = "~=7.6.0"
+sqlalchemy = "~=1.3.17"
+alembic = "~=1.4.2"
+psycopg2 = "~=2.8.5"
+aiopg = "~=1.0.0"
+
 
 [requires]
 python_version = "3.7"
