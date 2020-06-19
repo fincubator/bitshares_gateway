@@ -2,7 +2,7 @@ import pytest
 
 from db_utils.queries import *
 
-from .fixtures import *
+from .fixtures import testnet_gateway_account_mock
 
 
 async def get_test_engine():
@@ -20,8 +20,8 @@ async def test_engine():
 @pytest.mark.asyncio
 async def test_add_gateway_account():
     async with (await get_test_engine()).acquire() as conn:
-        first_result = await add_gateway_account(conn, account_name=testnet_gateway_account)
-        second_result = await add_gateway_account(conn, account_name=testnet_gateway_account)
+        first_result = await add_gateway_account(conn, account_name=testnet_gateway_account_mock)
+        second_result = await add_gateway_account(conn, account_name=testnet_gateway_account_mock)
 
     assert first_result
     assert second_result is False
@@ -30,9 +30,9 @@ async def test_add_gateway_account():
 @pytest.mark.asyncio
 async def test_get_gateway_account():
     async with (await get_test_engine()).acquire() as conn:
-        result: GatewayAccount = await get_gateway_account(conn, account_name=testnet_gateway_account)
+        result: GatewayAccount = await get_gateway_account(conn, account_name=testnet_gateway_account_mock)
     assert result
-    assert testnet_gateway_account == result.account_name
+    assert testnet_gateway_account_mock == result.account_name
     assert not result.last_operation
     assert not result.last_parsed_block
 
@@ -40,8 +40,8 @@ async def test_get_gateway_account():
 @pytest.mark.asyncio
 async def test_update_last_parsed_block():
     async with (await get_test_engine()).acquire() as conn:
-        await update_last_parsed_block(conn, account_name=testnet_gateway_account, last_parsed_block=666)
-        result: GatewayAccount = await get_gateway_account(conn, account_name=testnet_gateway_account)
+        await update_last_parsed_block(conn, account_name=testnet_gateway_account_mock, last_parsed_block=666)
+        result: GatewayAccount = await get_gateway_account(conn, account_name=testnet_gateway_account_mock)
         assert result.last_parsed_block == 666
         assert isinstance(result.last_parsed_block, int)
 
@@ -49,8 +49,8 @@ async def test_update_last_parsed_block():
 @pytest.mark.asyncio
 async def test_update_last_operation():
     async with (await get_test_engine()).acquire() as conn:
-        await update_last_operation(conn, account_name=testnet_gateway_account, last_operation=13)
-        result: GatewayAccount = await get_gateway_account(conn, account_name=testnet_gateway_account)
+        await update_last_operation(conn, account_name=testnet_gateway_account_mock, last_operation=13)
+        result: GatewayAccount = await get_gateway_account(conn, account_name=testnet_gateway_account_mock)
         assert result.last_operation == 13
         assert isinstance(result.last_operation, int)
 
@@ -58,6 +58,6 @@ async def test_update_last_operation():
 @pytest.mark.asyncio
 async def test_delete_gateway_account():
     async with (await get_test_engine()).acquire() as conn:
-        await delete_gateway_user(conn, account_name=testnet_gateway_account)
-        result = await get_gateway_account(conn, account_name=testnet_gateway_account)
+        await delete_gateway_user(conn, account_name=testnet_gateway_account_mock)
+        result = await get_gateway_account(conn, account_name=testnet_gateway_account_mock)
         assert result is None

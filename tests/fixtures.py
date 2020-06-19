@@ -1,5 +1,8 @@
 testnet_bitshares_nodes = ["wss://testnet.dex.trading/"]
 
+# Add this only for test_queries module to non-conflic run another tests
+testnet_gateway_account_mock = "some-account"
+
 testnet_gateway_account = "fincubator-gateway-test"
 testnet_gateway_active = "5JEEBPVnDwttRkbLzmFKmgoZ1ELxBMnjnEiX4JhvVfeDNQbX936"
 testnet_gateway_memo = "5KfyHL8gzAKiKz3wcc3c4EJgQi64nkuYZqAUN63QD5xxa2FogdW"
