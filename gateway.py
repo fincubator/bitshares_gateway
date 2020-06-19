@@ -38,7 +38,7 @@ class Gateway:
                                           account_name=gateway_cfg['account'],
                                           last_operation=last_op,
                                           last_parsed_block=last_block)
-
+                self.gateway_account = await get_gateway_account(conn, gateway_cfg['account'])
             else:
                 logging.info(f"Retrieve account {gateway_cfg['account']} data from database")
 
@@ -46,6 +46,9 @@ class Gateway:
                 last_block = self.gateway_account.last_parsed_block
 
             logging.info(f"Start from operation {last_op}, block number {last_block}")
+            if self.gateway_account:
+                return True
+            else: raise
 
     async def watch_account_history(self):
         """
@@ -107,7 +110,8 @@ class Gateway:
         self.bitshares_instance = await init_bitshares(account=gateway_cfg["account"],
                                                        keys=gateway_cfg["keys"],
                                                        node=gateway_cfg['nodes'])
-        await self.synchronize_account()
+        _sync = await self.synchronize_account()
+        assert _sync
 
         logging.info(f"\n"
                      f"     Run {gateway_cfg['gateway_core_asset']}.{gateway_cfg['gateway_distribute_asset']} bitshares gateway\n"
