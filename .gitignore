@@ -3,4 +3,4 @@
 *__pycache__/
 
 .idea/
-config.yml
+config/gateway.yml
