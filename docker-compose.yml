@@ -1,0 +1,33 @@
+version: '3.2'
+
+services:
+
+  postgres:
+      image: postgres:10
+      container_name: gateway_postgres
+      volumes:
+        - "/var/run/postgres/postgres.sock:/var/run/postgres/postgres.sock"
+        - "dbdata:/var/lib/postgresql/data"
+      environment:
+        - POSTGRES_USER=${DATABASE_USERNAME}
+        - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+        - POSTGRES_DB=${DATABASE_NAME}
+      ports:
+        - ${DATABASE_PORT}:${DATABASE_PORT}
+
+  gateway:
+    build: .
+    container_name: gateway
+    volumes:
+      - ./:/app
+    command: >
+      bash -c "pipenv run alembic upgrade head
+      && pipenv run python . "
+    ports:
+      - 8080:8080
+    depends_on:
+      - postgres
+
+
+volumes:
+  dbdata:
