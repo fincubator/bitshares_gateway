@@ -16,6 +16,9 @@ jobs:
       - name: Create test env
         run: cp .env.example .env
 
+      - name: Build database container
+        run: docker-compose run -d postgres
+
       - name: Build the stack
         run: docker-compose up --build -d
 
