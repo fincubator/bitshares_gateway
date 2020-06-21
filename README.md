@@ -42,13 +42,7 @@ Start the gateway as daemon by running the command:
 sudo docker-compose up --build -d
 ```
 
-
-# Contributing
-You can help by working on opened issues, fixing bugs, creating new features or
-improving documentation.
-
-Before contributing, please read [CONTRIBUTING.md] first.
-
+# How it works
 ##### Using bitshares_utils:
 
 
