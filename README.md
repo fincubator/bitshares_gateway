@@ -1,6 +1,6 @@
 # BitShares Gateway
 
-[![License]][LICENSE.md]
+[![License]][LICENSE]
 [![Telegram]][Telegram join]
 ![build](https://github.com/fincubator/bitshares_gateway/workflows/build/badge.svg)
 [![Code style: black]][black code style]
@@ -26,10 +26,10 @@ git clone https://github.com/fincubator/bitshares_gateway
 cd bitshares_gateway
 ```
 
-Create config file and fill it with your data. If not, gateway will start in testnet with
+Create gateway config file and fill it with your data. If not, gateway will start in testnet with
 parameters from tests dir.
 ```bash
-cp config/config.yml.example config/config.yml
+cp config/gateway.yml.example config/gateway.yml
 ```
 
 Create test *.env* file
@@ -85,10 +85,10 @@ Before contributing, please read [CONTRIBUTING.md] first.
 
 # License
 Bitshares Gateway is released under the GNU Affero General Public License v3.0. See
-[LICENSE.md] for the full licensing condition
+[LICENSE] for the full licensing condition
 
 [License]: https://img.shields.io/github/license/fincubator/bitshares_gateway
-[LICENSE.md]: LICENSE.md
+[LICENSE]: LICENSE
 [CONTRIBUTING.md]: CONTRIBUTING.md
 [Telegram]: https://img.shields.io/badge/Telegram-fincubator-blue?logo=telegram
 [Telegram join]: https://t.me/fincubator
