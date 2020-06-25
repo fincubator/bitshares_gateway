@@ -37,10 +37,20 @@ Create test *.env* file
 cp .env.example .env
 ```
 
-Start the gateway as daemon by running the command:
+## Run
+#### Run on production (mainnet)
+```bash
+sudo docker-compose run -d postgres
+sudo docker-compose run gateway
+```
+>Why not docker-compose up command?'
+>> Because on production we need some interactive shell to input keys/password
+
+#### Running in testnet
 ```bash
 sudo docker-compose up --build -d
 ```
+Will be using test account from test fixtures
 
 # How it works
 ##### Using bitshares_utils:
