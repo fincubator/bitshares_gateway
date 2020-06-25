@@ -8,7 +8,7 @@ WORKDIR /app
 
 COPY Pipfile.lock /app
 
-RUN pipenv install --ignore-pipfile --keep-outdated
+RUN pipenv install --ignore-pipfile --keep-outdated --dev
 
 # Copy the current directory contents into the container at /app
 COPY . /app
