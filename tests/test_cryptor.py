@@ -1,7 +1,10 @@
 import pytest
+import os
 
 from rncryptor import DecryptionError
-from cryptor import encrypt, decrypt
+
+from cryptor import encrypt, decrypt, get_wallet_keys, save_wallet_keys
+from config import project_root_dir
 
 
 def test_crypto_types():
@@ -26,3 +29,28 @@ def test_crypto_wrong_pass():
     encrypted_string = encrypt(start_string, test_password)
     with pytest.raises(DecryptionError):
         decrypt(encrypted_string, "wrongpassword")
+
+
+def test_secret_file_write_and_read():
+    account_name = "test_acc"
+    active_key = "active_key_1"
+    memo_key = "memo_key_2"
+    test_password = "testpassword"
+    enc_key_1 = encrypt(active_key, test_password)
+    enc_key_2 = encrypt(memo_key, test_password)
+
+    saved = save_wallet_keys(account_name, enc_key_1, enc_key_2)
+
+    assert saved
+
+    enc_keys = get_wallet_keys(account_name)
+
+    for key_type, key in enc_keys.items():
+        if key_type == "active":
+            assert active_key == decrypt(key, test_password)
+        elif key_type == "memo":
+            assert memo_key == decrypt(key, test_password)
+        else:
+            raise
+
+    os.remove(f"{project_root_dir}/config/.{account_name}.keys")
