@@ -22,8 +22,5 @@ jobs:
       - name: Build the stack
         run: docker-compose up --build -d
 
-      - name: Install dev packs
-        run: docker-compose exec -T gateway pipenv install --dev
-
       - name: Run tests
         run: docker-compose exec -T gateway pipenv run pytest
