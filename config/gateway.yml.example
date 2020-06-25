@@ -4,14 +4,8 @@ gateway_core_asset: FINTEH
 #Asset for distribution
 gateway_distribute_asset: ETH
 
-# Account for distribution (asset owner)
+# Account for distribution (NOT asset owner! Just Gateway Wallet (funded by Governance wallet))
 account: finteh
-
-# Gateway's account private keys
-# Get it with unlocked account in bitsharesUI->Advanced->Permissions->View Key
-keys:
-    active: 5....
-    memo: 5....
 
 # Some bitshares nodes list. Highly recomend to use your own API node
 nodes:
