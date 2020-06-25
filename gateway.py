@@ -1,6 +1,11 @@
+from getpass import getpass
+from rncryptor import DecryptionError
+
 from bitshares_utils import *
 from db_utils.queries import *
+from cryptor import get_wallet_keys, save_wallet_keys, encrypt, decrypt
 from config import gateway_cfg
+
 
 #  Mock for database and zmq executor module
 db_exec = print
@@ -12,7 +17,44 @@ class Gateway:
         self.bitshares_instance: BitShares
         self.db: Engine
 
-    async def synchronize_account(self):
+    async def unlock_wallet(self):
+        account_name = gateway_cfg['account']
+        active_key = ''
+        memo_key = ''
+
+        logging.info(f"Try to found encrypted keys of account {account_name}")
+
+        enc_keys = get_wallet_keys(account_name)
+
+        if not enc_keys:
+            logging.info(f"{account_name} is new account. Let's add and encrypt keys\n")
+            memo_key = getpass(f"Please Enter {account_name}'s active private key\n")
+            active_key = getpass(f"Ok.\nPlease Enter {account_name}'s memo active key\n")
+            password = getpass("Ok\nNow enter password to encrypt keys\n"
+                             "Warning! Currently there is NO WAY TO RECOVER your password!!! Please be careful!\n")
+            password_confirm = getpass("Repeat the password\n")
+            if password == password_confirm:
+                save_wallet_keys(account_name, encrypt(active_key, password), encrypt(memo_key, password))
+                logging.info(f"Successfully encrypted and stored in file config/.{account_name}.keys")
+                del password_confirm
+        else:
+            while not (active_key and memo_key):
+                password = getpass(f"Account {account_name} found. Enter password to decrypt keys\n")
+                try:
+                    active_key = decrypt(enc_keys['active'], password)
+                    memo_key = decrypt(enc_keys['memo'], password)
+                    logging.info(f"Successfully decrypted {account_name} keys:\n"
+                                 f"active: {active_key[:3]+'...'+active_key[-3:]}\n"
+                                 f"memo: {memo_key[:3]+'...'+memo_key[-3:]}\n")
+                except DecryptionError:
+                    logging.warning("Wrong password!")
+                except Exception as ex:
+                    logging.exception(ex)
+
+        gateway_cfg["keys"] = [active_key, memo_key]
+        del password
+
+    async def synchronize(self):
         """
         Before start, Gateway should synchronize distributing account's data with database.
         This function fetch last_operation and last_parsed_block from database.
@@ -24,31 +66,27 @@ class Gateway:
         last operation number and current irreversible block.
 
         Warning! Operations and blocks that was broadcast before adding account in database NEVER be processed
-        TODO skip_old flag
+        TODO implement skip_old flag ?
         """
-        async with self.db.acquire() as conn:
-            self.gateway_wallet = await get_gateway_wallet(conn, gateway_cfg['account'])
-            if not self.gateway_wallet:
 
-                logging.info(f"Account {gateway_cfg['account']} is new. Let's record it in database!")
+        async with self.db.acquire() as conn:
+            is_new = await add_gateway_wallet(conn, account_name=gateway_cfg['account'])
+            if is_new:
+                logging.info(f"Account {gateway_cfg['account']} is new. Let's retrieve data from blockchain and"
+                             f" record it in database!")
 
                 last_op = await get_last_op(gateway_cfg['account'])
                 last_block = await get_current_block_num()
-                await add_gateway_wallet(conn,
-                                         account_name=gateway_cfg['account'],
-                                         last_operation=last_op,
-                                         last_parsed_block=last_block)
-                self.gateway_wallet = await get_gateway_wallet(conn, gateway_cfg['account'])
-            else:
-                logging.info(f"Retrieve account {gateway_cfg['account']} data from database")
 
-                last_op = self.gateway_wallet.last_operation
-                last_block = self.gateway_wallet.last_parsed_block
+                await update_last_operation(conn, gateway_cfg['account'], last_op)
+                await update_last_parsed_block(conn, gateway_cfg['account'], last_block)
 
-            logging.info(f"Start from operation {last_op}, block number {last_block}")
-            if self.gateway_wallet:
-                return True
-            else: raise
+            logging.info(f"Retrieve account {gateway_cfg['account']} data from database")
+            self.gateway_wallet = await get_gateway_wallet(conn, gateway_cfg['account'])
+
+            logging.info(f"Start from operation {self.gateway_wallet.last_operation}, "
+                         f"block number {self.gateway_wallet.last_parsed_block}")
+            return True
 
     async def watch_account_history(self):
         """
@@ -87,9 +125,8 @@ class Gateway:
 
     async def watch_banker(self):
         """Await Banker"""
-
+        logging.info(f"Await for Banker (Booker :P) commands")
         while True:
-            logging.info(f"Await for Banker (Booker :P) commands")
             await asyncio.sleep(1)
             # if receive new tx from banker:
             # check it's status
@@ -97,20 +134,28 @@ class Gateway:
 
     async def watch_unconfirmed_transactions(self):
         # Grep unconfirmed transactions from base and try to confirm it
-        pass
+        logging.info(f"Checking unconfirmed txs")
+        while True:
+            await asyncio.sleep(1)
 
     async def watch_blocks(self):
-        await parse_blocks(start_block_num=self.gateway_wallet.last_parsed_block)
+        logging.info(f"Parsing blocks...")
+        pass
+        # await parse_blocks(start_block_num=self.gateway_wallet.last_parsed_block)
 
     async def main_loop(self):
         """Main gateway loop"""
         logging.basicConfig(level=logging.INFO)
 
         self.db = await init_database()
+
+        if not gateway_cfg.get('keys'):
+            await self.unlock_wallet()
+
         self.bitshares_instance = await init_bitshares(account=gateway_cfg["account"],
                                                        keys=gateway_cfg["keys"],
                                                        node=gateway_cfg['nodes'])
-        _sync = await self.synchronize_account()
+        _sync = await self.synchronize()
         assert _sync
 
         logging.info(f"\n"
