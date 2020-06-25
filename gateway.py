@@ -27,26 +27,26 @@ class Gateway:
         TODO skip_old flag
         """
         async with self.db.acquire() as conn:
-            self.gateway_account = await get_gateway_account(conn, gateway_cfg['account'])
-            if not self.gateway_account:
+            self.gateway_wallet = await get_gateway_wallet(conn, gateway_cfg['account'])
+            if not self.gateway_wallet:
 
                 logging.info(f"Account {gateway_cfg['account']} is new. Let's record it in database!")
 
                 last_op = await get_last_op(gateway_cfg['account'])
                 last_block = await get_current_block_num()
-                await add_gateway_account(conn,
-                                          account_name=gateway_cfg['account'],
-                                          last_operation=last_op,
-                                          last_parsed_block=last_block)
-                self.gateway_account = await get_gateway_account(conn, gateway_cfg['account'])
+                await add_gateway_wallet(conn,
+                                         account_name=gateway_cfg['account'],
+                                         last_operation=last_op,
+                                         last_parsed_block=last_block)
+                self.gateway_wallet = await get_gateway_wallet(conn, gateway_cfg['account'])
             else:
                 logging.info(f"Retrieve account {gateway_cfg['account']} data from database")
 
-                last_op = self.gateway_account.last_operation
-                last_block = self.gateway_account.last_parsed_block
+                last_op = self.gateway_wallet.last_operation
+                last_block = self.gateway_wallet.last_parsed_block
 
             logging.info(f"Start from operation {last_op}, block number {last_block}")
-            if self.gateway_account:
+            if self.gateway_wallet:
                 return True
             else: raise
 
@@ -59,7 +59,7 @@ class Gateway:
 
         logging.info(f"Watching {self.bitshares_instance.config['default_account']} for new operations started")
 
-        last_op = self.gateway_account.last_operation
+        last_op = self.gateway_wallet.last_operation
 
         while True:
 
@@ -100,7 +100,7 @@ class Gateway:
         pass
 
     async def watch_blocks(self):
-        await parse_blocks(start_block_num=self.gateway_account.last_parsed_block)
+        await parse_blocks(start_block_num=self.gateway_wallet.last_parsed_block)
 
     async def main_loop(self):
         """Main gateway loop"""

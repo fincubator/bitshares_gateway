@@ -21,13 +21,13 @@ depends_on = None
 
 def upgrade():
     op.create_table(
-        'gateway_accounts',
+        'gateway_wallets',
         sa.Column('pk', sa.Integer, primary_key=True, index=True),
         sa.Column("account_name", sa.String, unique=True),
         sa.Column('last_parsed_block', sa.Integer),
-        sa.Column('last_operation', sa.Integer)
+        sa.Column('last_operation', sa.Integer),
     )
 
 
 def downgrade():
-    op.drop_table('gateway_accounts')
+    op.drop_table('gateway_wallets')

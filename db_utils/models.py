@@ -19,8 +19,8 @@ def create_all():
     Base.metadata.create_all(engine)
 
 
-class GatewayAccount(Base):
-    __tablename__ = "gateway_accounts"
+class GatewayWallet(Base):
+    __tablename__ = "gateway_wallets"
 
     pk = sa.Column(sa.Integer, primary_key=True, index=True)
 
