@@ -18,8 +18,7 @@ async def init_bitshares(account: str = None, node: str or list = None, keys: li
     if not account:
         raise Exception("You need to provide an gateway account. Gateway instance can not work without it!\n"
                         "Check that your account is owner of asset that your instance will distribute!")
-    kwargs = dict(node=node, keys=keys, loop=loop, )
-    bitshares_instance = BitShares(**kwargs)
+    bitshares_instance = BitShares(node=node, keys=keys, loop=loop)
     set_shared_bitshares_instance(bitshares_instance)
     await bitshares_instance.connect()
     bitshares_instance.set_default_account(account)
@@ -33,25 +32,31 @@ async def broadcast_tx(tx: dict) -> dict:
     return tx_res
 
 
-async def asset_issue(symbol: str, amount: float, to: str, **kwargs) -> dict:
+async def asset_issue(symbol: str, amount: float, to: str, memo: str = None) -> dict:
     asset: Asset = await Asset(symbol)
     asset.blockchain.nobroadcast = True
-    return await asset.issue(amount=amount, to=to, **kwargs)
+    return await asset.issue(amount=amount, to=to, memo=memo)
 
 
 async def asset_burn(amount: Amount or int or float,
-                     symbol: str = None, **kwargs) -> dict:
+                     symbol: str = None) -> dict:
     instance = shared_bitshares_instance()
     instance.nobroadcast = True
     if not isinstance(amount, Amount) and type(amount) in (int, float):
         amount = await Amount(amount, symbol)
-    return await instance.reserve(amount, **kwargs)
+    return await instance.reserve(amount)
 
 
-async def asset_transfer(**kwargs) -> dict:
+async def asset_transfer(to: str, amount: float, asset: str, memo: str = None, account: str = None) -> dict:
     instance = shared_bitshares_instance()
     instance.nobroadcast = True
-    return await instance.transfer(**kwargs)
+    if not account:
+        account = instance.config['default_account']
+    return await instance.transfer(account=account,
+                                   to=to,
+                                   amount=amount,
+                                   asset=asset,
+                                   memo=memo)
 
 
 async def wait_new_account_ops(account: str = None, last_op: int = 0) -> list:

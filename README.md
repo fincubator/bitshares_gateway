@@ -37,12 +37,34 @@ Create test *.env* file
 cp .env.example .env
 ```
 
-Start the gateway as daemon by running the command:
+## Run
+#### Run on production (mainnet)
+```bash
+sudo docker-compose run -d postgres
+sudo docker-compose run gateway
+```
+>Why not docker-compose up command?'
+>> Because on production we need some interactive shell to input keys/password
+
+#### Running in testnet
 ```bash
 sudo docker-compose up --build -d
 ```
+Will be using test account from test fixtures
 
 # How it works
+BitShares Gateway serve SINGLE bitshares asset. 
+It means that if you want to run `Bitcoin/BITSHARES.BITCOIN_ASSET` exchange, you need to deploy 3 instances:
+1. This project (configured to work with BITSHARES.BITCOIN_ASSET)
+2. [Booker]
+3. Some Bitcoin gateway that can interact with [Booker] api
+
+Also it means that if you want to run 10 cryptocurrency exchanges, you need 10 instances of BitShares Gateway, 10 coin (Native) 
+gateways and one [Booker]
+
+`Gateway` class in `gateway.py` file is heart of project logic. It is still in development.
+
+There is `bitshares_utils.py` module - useful async python tools allow to build gateway's algorithms.
 ##### Using bitshares_utils:
 
 
