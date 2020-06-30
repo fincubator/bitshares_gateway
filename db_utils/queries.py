@@ -3,7 +3,7 @@ import logging
 import aiopg.sa
 from aiopg.sa import SAConnection as SAConn, Engine
 from sqlalchemy.sql import insert, delete, update, select
-from db_utils.models import GatewayWallet, Order, BitsharesOperation
+from db_utils.models import GatewayWallet, BitsharesOperation
 
 from config import pg_config
 
