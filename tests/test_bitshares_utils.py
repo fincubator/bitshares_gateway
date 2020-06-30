@@ -36,7 +36,7 @@ async def test_issue_asset_nobroadcast():
     user_instance = await Account(testnet_user_account)
     old_user_eth_balance = await user_instance.balance(testnet_eth_asset)
 
-    _issue = await asset_issue(symbol=testnet_eth_asset, amount=TESTNET_ETH_AMOUNT, to=testnet_user_account)
+    _issue = await asset_issue(symbol=testnet_eth_asset, amount=TEST_ETH_AMOUNT, to=testnet_user_account)
 
     new_user_eth_balance = await user_instance.balance(testnet_eth_asset)
 
@@ -55,7 +55,7 @@ async def test_issue_asset_broadcast():
     user_instance = await Account(testnet_user_account)
     old_user_eth_balance = await user_instance.balance(testnet_eth_asset)
 
-    _issue = await asset_issue(symbol=testnet_eth_asset, amount=TESTNET_ETH_AMOUNT, to=testnet_user_account)
+    _issue = await asset_issue(symbol=testnet_eth_asset, amount=TEST_ETH_AMOUNT, to=testnet_user_account)
     issue = await broadcast_tx(_issue)
 
     new_user_eth_balance = await user_instance.balance(testnet_eth_asset)
@@ -63,7 +63,7 @@ async def test_issue_asset_broadcast():
     # .amount cause asyncio bitshares currently dont support some math operations
     # When it will be implemented, need to remove .amount
 
-    assert (new_user_eth_balance.amount - old_user_eth_balance.amount) == TESTNET_ETH_AMOUNT
+    assert (new_user_eth_balance.amount - old_user_eth_balance.amount) == TEST_ETH_AMOUNT
     assert isinstance(issue, dict)
     await instance.rpc.connection.disconnect()
 
@@ -77,7 +77,7 @@ async def test_asset_burn_nobroadcast():
     gateway_instance = await Account(testnet_gateway_account)
     old_gateway_eth_balance = await gateway_instance.balance(testnet_eth_asset)
 
-    _burn = await asset_burn(symbol=testnet_eth_asset, amount=TESTNET_ETH_AMOUNT)
+    _burn = await asset_burn(symbol=testnet_eth_asset, amount=TEST_ETH_AMOUNT)
     new_gateway_eth_balance = await gateway_instance.balance(testnet_eth_asset)
 
     # .amount cause asyncio bitshares currently dont support some math operations
@@ -97,14 +97,14 @@ async def test_asset_burn_broadcast():
     gateway_instance = await Account(testnet_gateway_account)
     old_gateway_eth_balance = await gateway_instance.balance(testnet_eth_asset)
 
-    _burn = await asset_burn(symbol=testnet_eth_asset, amount=TESTNET_ETH_AMOUNT)
+    _burn = await asset_burn(symbol=testnet_eth_asset, amount=TEST_ETH_AMOUNT)
     burn = await broadcast_tx(_burn)
 
     new_gateway_eth_balance = await gateway_instance.balance(testnet_eth_asset)
 
     # .amount cause asyncio bitshares currently dont support some math operations
     # When it will be implemented, need to remove .amount
-    assert (old_gateway_eth_balance.amount - new_gateway_eth_balance.amount) == TESTNET_ETH_AMOUNT
+    assert (old_gateway_eth_balance.amount - new_gateway_eth_balance.amount) == TEST_ETH_AMOUNT
     assert isinstance(burn, dict)
 
     await instance.rpc.connection.disconnect()
@@ -132,7 +132,7 @@ async def test_transfer_nobroadcast():
 
     _transfer = await asset_transfer(account=testnet_user_account,
                                      to=testnet_gateway_account,
-                                     amount=TESTNET_ETH_AMOUNT,
+                                     amount=TEST_ETH_AMOUNT,
                                      asset=testnet_eth_asset)
     new_user_eth_balance = await user_instance.balance(testnet_eth_asset)
     assert new_user_eth_balance.amount == old_user_eth_balance.amount
@@ -151,7 +151,7 @@ async def test_asset_transfer_broadcast():
 
     _transfer = await asset_transfer(account=testnet_user_account,
                                      to=testnet_gateway_account,
-                                     amount=TESTNET_ETH_AMOUNT,
+                                     amount=TEST_ETH_AMOUNT,
                                      asset=testnet_eth_asset,
                                      memo=testnet_memo_string)
     transfer = await broadcast_tx(_transfer)
@@ -160,7 +160,7 @@ async def test_asset_transfer_broadcast():
 
     # .amount cause asyncio bitshares currently dont support some math operations
     # When it will be implemented, need to remove .amount
-    assert (new_gateway_eth_balance.amount - old_gateway_eth_balance.amount) == TESTNET_ETH_AMOUNT
+    assert (new_gateway_eth_balance.amount - old_gateway_eth_balance.amount) == TEST_ETH_AMOUNT
     assert isinstance(transfer, dict)
     assert (await read_memo(transfer["operations"][0][1]['memo'])) == testnet_memo_string
     await instance.rpc.connection.disconnect()
@@ -178,21 +178,302 @@ async def test_await_new_account_ops():
 
 
 @pytest.mark.asyncio
-async def test_validate_op():
-    instance = await init_bitshares(account=testnet_gateway_account,
-                                    node=testnet_bitshares_nodes,
-                                    keys=[testnet_user_active, testnet_user_memo])
-    new_ops = await wait_new_account_ops()
-    for op in new_ops:
-        await validate_op(op)
-
-    await instance.rpc.connection.disconnect()
+async def test_get_last_op_num():
+    await init_bitshares(account=testnet_gateway_account,
+                         node=testnet_bitshares_nodes,
+                         keys=[testnet_user_active, testnet_user_memo])
+    last_op = await get_last_op_num(testnet_gateway_account)
+    assert isinstance(last_op, int)
 
 
 @pytest.mark.asyncio
-async def test_get_last_op():
-    instance = await init_bitshares(account=testnet_gateway_account,
-                                    node=testnet_bitshares_nodes,
-                                    keys=[testnet_user_active, testnet_user_memo])
-    last_op = await get_last_op(testnet_gateway_account)
-    assert isinstance(last_op, int)
+async def test_withdrawal_validate_success():
+    await init_bitshares(account=testnet_gateway_account,
+                         node=testnet_bitshares_nodes,
+                         keys=[testnet_user_active, testnet_user_memo,
+                               testnet_gateway_active, testnet_gateway_memo])
+
+    previous_last_op_num = await get_last_op_num(testnet_gateway_account)
+
+    _withdrawal = await asset_transfer(account=testnet_user_account,
+                                       to=testnet_gateway_account,
+                                       amount=0.1,
+                                       asset=testnet_eth_asset,
+                                       memo="eTh:123456")
+
+    withdrawal = await broadcast_tx(_withdrawal)
+    new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
+    assert len(new_ops) == 1
+
+    txid_match = False
+    for op in new_ops:
+        op_block: Block = await Block(op['block_num'])
+        for tx in op_block['transactions']:
+            if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
+                txid_match = True
+                assert len(tx["operations"]) == 1
+                validated = await validate_op(op)
+                assert validated.order_type == OrderType.WITHDRAWAL
+                assert not validated.error != TxError.NO_ERROR
+
+    assert txid_match
+
+
+@pytest.mark.asyncio
+async def test_withdrawal_validate_bad_amount_less_min():
+    await init_bitshares(account=testnet_gateway_account,
+                         node=testnet_bitshares_nodes,
+                         keys=[testnet_user_active, testnet_user_memo,
+                               testnet_gateway_active, testnet_gateway_memo])
+
+    previous_last_op_num = await get_last_op_num(testnet_gateway_account)
+
+    _withdrawal = await asset_transfer(account=testnet_user_account,
+                                       to=testnet_gateway_account,
+                                       amount=test_gateway_min_withdrawal * 0.99,
+                                       asset=testnet_eth_asset,
+                                       memo="eTh:123456")
+
+    withdrawal = await broadcast_tx(_withdrawal)
+    new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
+    assert len(new_ops) == 1
+
+    txid_match = False
+    for op in new_ops:
+        op_block: Block = await Block(op['block_num'])
+        for tx in op_block['transactions']:
+            if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
+                txid_match = True
+                assert len(tx["operations"]) == 1
+                validated = await validate_op(op)
+                assert validated.error == TxError.LESS_MIN
+                assert validated.status == TxStatus.ERROR
+
+    assert txid_match
+
+
+@pytest.mark.asyncio
+async def test_withdrawal_validate_bad_amount_greater_max():
+    await init_bitshares(account=testnet_gateway_account,
+                         node=testnet_bitshares_nodes,
+                         keys=[testnet_user_active, testnet_user_memo,
+                               testnet_gateway_active, testnet_gateway_memo])
+
+    previous_last_op_num = await get_last_op_num(testnet_gateway_account)
+
+    _withdrawal = await asset_transfer(account=testnet_user_account,
+                                       to=testnet_gateway_account,
+                                       amount=test_gateway_max_withdrawal * 1.1,
+                                       asset=testnet_eth_asset,
+                                       memo="eTh:123456")
+
+    withdrawal = await broadcast_tx(_withdrawal)
+    new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
+    assert len(new_ops) == 1
+
+    txid_match = False
+    for op in new_ops:
+        op_block: Block = await Block(op['block_num'])
+        for tx in op_block['transactions']:
+            if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
+                txid_match = True
+                assert len(tx["operations"]) == 1
+                validated = await validate_op(op)
+                assert validated.error == TxError.GREATER_MAX
+                assert validated.status == TxStatus.ERROR
+
+    assert txid_match
+
+
+@pytest.mark.asyncio
+async def test_withdrawal_validate_bad_asset():
+    await init_bitshares(account=testnet_gateway_account,
+                         node=testnet_bitshares_nodes,
+                         keys=[testnet_user_active, testnet_user_memo,
+                               testnet_gateway_active, testnet_gateway_memo])
+
+    previous_last_op_num = await get_last_op_num(testnet_gateway_account)
+
+    _withdrawal = await asset_transfer(account=testnet_user_account,
+                                       to=testnet_gateway_account,
+                                       amount=0.1,
+                                       asset=testnet_usdt_asset,
+                                       memo="eTh:123456")
+
+    withdrawal = await broadcast_tx(_withdrawal)
+    new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
+    assert len(new_ops) == 1
+
+    txid_match = False
+    for op in new_ops:
+        op_block: Block = await Block(op['block_num'])
+        for tx in op_block['transactions']:
+            if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
+                txid_match = True
+                assert len(tx["operations"]) == 1
+                validated = await validate_op(op)
+                assert validated.error == TxError.BAD_ASSET
+                assert validated.status == TxStatus.ERROR
+
+    assert txid_match
+
+
+@pytest.mark.asyncio
+async def test_withdrawal_validate_memo_no_memo():
+    await init_bitshares(account=testnet_gateway_account,
+                         node=testnet_bitshares_nodes,
+                         keys=[testnet_user_active, testnet_user_memo,
+                               testnet_gateway_active, testnet_gateway_memo])
+
+    previous_last_op_num = await get_last_op_num(testnet_gateway_account)
+
+    _withdrawal = await asset_transfer(account=testnet_user_account,
+                                       to=testnet_gateway_account,
+                                       amount=0.1,
+                                       asset=testnet_eth_asset)
+
+    withdrawal = await broadcast_tx(_withdrawal)
+    new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
+    assert len(new_ops) == 1
+    txid_match = False
+    for op in new_ops:
+        op_block: Block = await Block(op['block_num'])
+        for tx in op_block['transactions']:
+            if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
+                txid_match = True
+                assert len(tx["operations"]) == 1
+                validated = await validate_op(op)
+                assert validated.error == TxError.NO_MEMO
+                assert validated.status == TxStatus.ERROR
+
+    assert txid_match
+
+
+@pytest.mark.asyncio
+async def test_withdrawal_validate_flood_memo():
+    await init_bitshares(account=testnet_gateway_account,
+                         node=testnet_bitshares_nodes,
+                         keys=[testnet_user_active, testnet_user_memo,
+                               testnet_gateway_active, testnet_gateway_memo])
+
+    previous_last_op_num = await get_last_op_num(testnet_gateway_account)
+
+    _withdrawal = await asset_transfer(account=testnet_user_account,
+                                       to=testnet_gateway_account,
+                                       amount=0.1,
+                                       asset=testnet_eth_asset,
+                                       memo=':')
+
+    withdrawal = await broadcast_tx(_withdrawal)
+    new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
+    assert len(new_ops) == 1
+    txid_match = False
+    for op in new_ops:
+        op_block: Block = await Block(op['block_num'])
+        for tx in op_block['transactions']:
+            if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
+                txid_match = True
+                assert len(tx["operations"]) == 1
+                validated = await validate_op(op)
+                assert validated.error == TxError.FLOOD_MEMO
+                assert validated.status == TxStatus.ERROR
+
+    assert txid_match
+
+
+@pytest.mark.asyncio
+async def test_deposit_validate_success():
+    await init_bitshares(account=testnet_gateway_account,
+                         node=testnet_bitshares_nodes,
+                         keys=[testnet_user_active, testnet_user_memo,
+                               testnet_gateway_active, testnet_gateway_memo])
+
+    previous_last_op_num = await get_last_op_num(testnet_gateway_account)
+
+    _withdrawal = await asset_transfer(account=testnet_gateway_account,
+                                       to=testnet_user_account,
+                                       amount=0.1,
+                                       asset=testnet_eth_asset)
+
+    withdrawal = await broadcast_tx(_withdrawal)
+    new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
+    assert len(new_ops) == 1
+
+    txid_match = False
+    for op in new_ops:
+        op_block: Block = await Block(op['block_num'])
+        for tx in op_block['transactions']:
+            if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
+                txid_match = True
+                assert len(tx["operations"]) == 1
+                validated = await validate_op(op)
+                assert validated.order_type == OrderType.DEPOSIT
+                assert validated.error == TxError.NO_ERROR
+
+    assert txid_match
+
+
+@pytest.mark.asyncio
+async def test_deposit_validate_less_min():
+    await init_bitshares(account=testnet_gateway_account,
+                         node=testnet_bitshares_nodes,
+                         keys=[testnet_user_active, testnet_user_memo,
+                               testnet_gateway_active, testnet_gateway_memo])
+
+    previous_last_op_num = await get_last_op_num(testnet_gateway_account)
+
+    _withdrawal = await asset_transfer(account=testnet_gateway_account,
+                                       to=testnet_user_account,
+                                       amount=test_gateway_min_deposit * 0.99,
+                                       asset=testnet_eth_asset)
+
+    withdrawal = await broadcast_tx(_withdrawal)
+    new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
+    assert len(new_ops) == 1
+
+    txid_match = False
+    for op in new_ops:
+        op_block: Block = await Block(op['block_num'])
+        for tx in op_block['transactions']:
+            if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
+                txid_match = True
+                assert len(tx["operations"]) == 1
+                validated = await validate_op(op)
+                assert validated.order_type == OrderType.DEPOSIT
+                assert validated.status == TxStatus.ERROR
+                assert validated.error == TxError.LESS_MIN
+
+    assert txid_match
+
+
+@pytest.mark.asyncio
+async def test_deposit_validate_greater_max():
+    await init_bitshares(account=testnet_gateway_account,
+                         node=testnet_bitshares_nodes,
+                         keys=[testnet_user_active, testnet_user_memo,
+                               testnet_gateway_active, testnet_gateway_memo])
+
+    previous_last_op_num = await get_last_op_num(testnet_gateway_account)
+
+    _withdrawal = await asset_transfer(account=testnet_gateway_account,
+                                       to=testnet_user_account,
+                                       amount=test_gateway_max_deposit * 1.11,
+                                       asset=testnet_eth_asset)
+
+    withdrawal = await broadcast_tx(_withdrawal)
+    new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
+    assert len(new_ops) == 1
+
+    txid_match = False
+    for op in new_ops:
+        op_block: Block = await Block(op['block_num'])
+        for tx in op_block['transactions']:
+            if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
+                txid_match = True
+                assert len(tx["operations"]) == 1
+                validated = await validate_op(op)
+                assert validated.order_type == OrderType.DEPOSIT
+                assert validated.status == TxStatus.ERROR
+                assert validated.error == TxError.GREATER_MAX
+
+    assert txid_match
