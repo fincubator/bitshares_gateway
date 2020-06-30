@@ -19,16 +19,21 @@ except FileNotFoundError:
     # If config/gateway.yml is not provided, using testnet fixtures"
     from tests.fixtures import \
         testnet_gateway_account, testnet_gateway_memo, testnet_gateway_active, \
-        testnet_gateway_prefix, testnet_core_asset, testnet_bitshares_nodes
+        testnet_gateway_prefix, testnet_core_asset, testnet_bitshares_nodes, testnet_eth_asset, \
+        test_gateway_min_deposit, test_gateway_max_deposit, test_gateway_max_withdrawal, test_gateway_min_withdrawal
 
     gateway_cfg = {
         'core_asset': testnet_core_asset,
-        'gateway_core_asset': testnet_core_asset,
-        'gateway_distribute_asset': 'ETH',
+        'gateway_prefix': testnet_core_asset,
+        'gateway_distribute_asset': testnet_eth_asset,
         'account': testnet_gateway_account,
         'keys': {'active': testnet_gateway_active,
                  'memo': testnet_gateway_memo},
-        'nodes': testnet_bitshares_nodes
+        'nodes': testnet_bitshares_nodes,
+        'gateway_min_deposit': test_gateway_min_deposit,
+        'gateway_min_withdrawal': test_gateway_min_withdrawal,
+        'gateway_max_deposit': test_gateway_max_deposit,
+        'gateway_max_withdrawal': test_gateway_max_withdrawal
     }
 
 

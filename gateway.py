@@ -6,16 +6,18 @@ from db_utils.queries import *
 from cryptor import get_wallet_keys, save_wallet_keys, encrypt, decrypt
 from config import gateway_cfg
 
-
 #  Mock for database and zmq executor module
 db_exec = print
 zeromq_send = print
 
 
 class Gateway:
+
+    bitshares_instance: BitShares
+    db: Engine
+
     def __init__(self):
-        self.bitshares_instance: BitShares
-        self.db: Engine
+        pass
 
     async def unlock_wallet(self):
         account_name = gateway_cfg['account']
@@ -31,7 +33,7 @@ class Gateway:
             memo_key = getpass(f"Please Enter {account_name}'s active private key\n")
             active_key = getpass(f"Ok.\nPlease Enter {account_name}'s memo active key\n")
             password = getpass("Ok\nNow enter password to encrypt keys\n"
-                             "Warning! Currently there is NO WAY TO RECOVER your password!!! Please be careful!\n")
+                               "Warning! Currently there is NO WAY TO RECOVER your password!!! Please be careful!\n")
             password_confirm = getpass("Repeat the password\n")
             if password == password_confirm:
                 save_wallet_keys(account_name, encrypt(active_key, password), encrypt(memo_key, password))
@@ -44,8 +46,8 @@ class Gateway:
                     active_key = decrypt(enc_keys['active'], password)
                     memo_key = decrypt(enc_keys['memo'], password)
                     logging.info(f"Successfully decrypted {account_name} keys:\n"
-                                 f"active: {active_key[:3]+'...'+active_key[-3:]}\n"
-                                 f"memo: {memo_key[:3]+'...'+memo_key[-3:]}\n")
+                                 f"active: {active_key[:3] + '...' + active_key[-3:]}\n"
+                                 f"memo: {memo_key[:3] + '...' + memo_key[-3:]}\n")
                 except DecryptionError:
                     logging.warning("Wrong password!")
                 except Exception as ex:
@@ -75,7 +77,7 @@ class Gateway:
                 logging.info(f"Account {gateway_cfg['account']} is new. Let's retrieve data from blockchain and"
                              f" record it in database!")
 
-                last_op = await get_last_op(gateway_cfg['account'])
+                last_op = await get_last_op_num(gateway_cfg['account'])
                 last_block = await get_current_block_num()
 
                 await update_last_operation(conn, gateway_cfg['account'], last_op)
@@ -92,7 +94,7 @@ class Gateway:
         """
         BitShares Gateway account monitoring
 
-        All new operations will be inserted in database and validate. Banker will be notified about it.
+        All new operations will be validate and insert in database. Booker will be notified about it.
         """
 
         logging.info(f"Watching {self.bitshares_instance.config['default_account']} for new operations started")
@@ -105,34 +107,34 @@ class Gateway:
             if not new_ops:
                 await asyncio.sleep(1)
 
-            logging.info("Find new ops")
+            logging.info(f"Found new {len(new_ops)} operations")
+
             for op in new_ops:
                 # BitShares have '1.11.1234567890' so need to retrieve integer ID of operation
                 op_id = op['id'].split('.')[2]
                 last_op = op_id
 
+                op_result = await validate_op(op)
+                if op_result:
+                    # if operation is relevant, add it to database and tell banker about it
+                    # db_exec(op_result)
+                    # zeromq_send(op_result)
+                    pass
                 # Refresh last account operations in database
                 async with self.db.acquire() as conn:
                     await update_last_operation(conn, account_name=self.bitshares_instance.config["default_account"],
                                                 last_operation=op_id)
 
-                    op_result = await validate_op(op)
-                    if op_result:
-                        if op_result:
-                            # if operation is relevant, add it to database and tell banker about it
-                            db_exec(op_result)
-                            zeromq_send(op_result)
-
     async def watch_banker(self):
         """Await Banker"""
-        logging.info(f"Await for Banker (Booker :P) commands")
+        logging.info(f"Await for Booker commands")
         while True:
             await asyncio.sleep(1)
             # if receive new tx from banker:
             # check it's status
             # add to database with State 0
 
-    async def watch_unconfirmed_transactions(self):
+    async def watch_unconfirmed_operations(self):
         # Grep unconfirmed transactions from base and try to confirm it
         logging.info(f"Checking unconfirmed txs")
         while True:
@@ -159,7 +161,8 @@ class Gateway:
         assert _sync
 
         logging.info(f"\n"
-                     f"     Run {gateway_cfg['gateway_core_asset']}.{gateway_cfg['gateway_distribute_asset']} bitshares gateway\n"
+                     f"     Run {gateway_cfg['gateway_prefix']}.{gateway_cfg['gateway_distribute_asset']} "
+                     f"BitShares gateway\n"
                      f"     Distribution account: {self.bitshares_instance.config['default_account']}\n"
                      f"     Connected to node: {self.bitshares_instance.rpc.url}\n"
                      f"     Connected to database: {not self.db.closed}")
@@ -170,5 +173,5 @@ class Gateway:
             asyncio.create_task(self.watch_banker()),
             asyncio.create_task(self.watch_account_history()),
             asyncio.create_task(self.watch_blocks()),
-            asyncio.create_task(self.watch_unconfirmed_transactions())
+            asyncio.create_task(self.watch_unconfirmed_operations())
         )
