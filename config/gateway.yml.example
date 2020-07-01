@@ -28,5 +28,3 @@ booker:
     host: 0.0.0.0
     http_port: 8080
     zmq_port: 9090
-
-

@@ -6,19 +6,25 @@ from config import project_root_dir
 
 
 def encrypt(string_to_encrypt: str, password: str) -> str:
-    return b64encode(rncryptor.RNCryptor().encrypt(data=string_to_encrypt, password=password)).decode('utf-8')
+    return b64encode(
+        rncryptor.RNCryptor().encrypt(data=string_to_encrypt, password=password)
+    ).decode("utf-8")
 
 
 def decrypt(encrypted_string: str, password: str) -> str:
-    return rncryptor.RNCryptor().decrypt(b64decode(encrypted_string.encode('utf-8')), password=password)
+    return rncryptor.RNCryptor().decrypt(
+        b64decode(encrypted_string.encode("utf-8")), password=password
+    )
 
 
 def get_wallet_keys(account_name: str) -> dict:
     keys = {}
     try:
-        with open(f"{project_root_dir}/config/.{account_name}.keys", "r") as secret_file:
+        with open(
+            f"{project_root_dir}/config/.{account_name}.keys", "r"
+        ) as secret_file:
             keys_string = secret_file.read()
-            for key_param in keys_string.split('\n'):
+            for key_param in keys_string.split("\n"):
                 key_type, key = key_param.split(":")
                 keys[key_type] = key
     except FileNotFoundError:
@@ -36,8 +42,5 @@ def save_wallet_keys(account_name: str, active_key: str, memo_key: str) -> bool:
     :param memo_key: Already base64-encoded encrypted memo private key of account_name
     """
     with open(f"{project_root_dir}/config/.{account_name}.keys", "w") as secret_file:
-        secret_file.write(
-            f"active:{active_key}\n"
-            f"memo:{memo_key}"
-        )
+        secret_file.write(f"active:{active_key}\n" f"memo:{memo_key}")
     return True
