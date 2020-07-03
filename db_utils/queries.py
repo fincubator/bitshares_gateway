@@ -5,7 +5,7 @@ from aiopg.sa.result import RowProxy
 from sqlalchemy.sql import insert, delete, update, select
 from db_utils.models import GatewayWallet, BitsharesOperation
 from dto import OrderType, TxStatus
-from utils import get_logger
+from utils import get_logger, object_as_dict
 
 from config import pg_config
 
@@ -30,11 +30,14 @@ async def get_gateway_wallet(conn: SAConn, account_name: str) -> RowProxy:
     return result
 
 
-async def add_gateway_wallet(conn: SAConn, **kwargs) -> bool:
+async def add_gateway_wallet(conn: SAConn, wallet: GatewayWallet) -> bool:
     try:
-        await conn.execute(insert(GatewayWallet).values(**kwargs))
+        _wallet = object_as_dict(wallet)
+        _wallet.pop("pk")
+        await conn.execute(insert(GatewayWallet).values(**_wallet))
         return True
-    except:
+    except Exception as ex:
+        print(ex)
         return False
 
 
@@ -84,12 +87,14 @@ async def get_operation(conn: SAConn, op_id: int) -> RowProxy:
     return result
 
 
-async def add_operation(conn: SAConn, **operation):
+async def add_operation(conn: SAConn, operation: BitsharesOperation):
     isolation_level = "SERIALIZABLE"
     sql_tx = await conn.begin(isolation_level=isolation_level)
     try:
-        await conn.execute(insert(BitsharesOperation).values(**operation))
-        operation_db_instance = await get_operation(conn, op_id=operation["op_id"])
+        _operation = object_as_dict(operation)
+        _operation.pop("pk")
+        await conn.execute(insert(BitsharesOperation).values(**_operation))
+        operation_db_instance = await get_operation(conn, op_id=_operation["op_id"])
 
         if operation_db_instance.order_type is OrderType.DEPOSIT:
             account = operation_db_instance.from_account
@@ -98,7 +103,7 @@ async def add_operation(conn: SAConn, **operation):
         else:
             raise
 
-        await update_last_operation(conn, account, operation["op_id"])
+        await update_last_operation(conn, account, operation.op_id)
         await sql_tx.commit()
     except Exception as ex:
         log.exception(ex)
@@ -106,9 +111,11 @@ async def add_operation(conn: SAConn, **operation):
         await sql_tx.rollback()
 
 
-async def update_operation(conn: SAConn, op_id, **new_values) -> None:
+async def update_operation(conn: SAConn, operation: BitsharesOperation) -> None:
+    _operation = object_as_dict(operation)
+    _operation.pop("pk")
     await conn.execute(
         update(BitsharesOperation)
-        .values(**new_values)
-        .where(BitsharesOperation.op_id == op_id)
+        .values(**_operation)
+        .where(BitsharesOperation.op_id == operation.op_id)
     )

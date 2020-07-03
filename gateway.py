@@ -92,7 +92,8 @@ class Gateway:
         """
 
         async with self.db.acquire() as conn:
-            is_new = await add_gateway_wallet(conn, account_name=gateway_cfg["account"])
+            wallet = GatewayWallet(account_name=gateway_cfg["account"])
+            is_new = await add_gateway_wallet(conn, wallet)
             if is_new:
                 log.info(
                     f"Account {gateway_cfg['account']} is new. Let's retrieve data from blockchain and"
@@ -144,8 +145,9 @@ class Gateway:
                 async with self.db.acquire() as conn:
 
                     if op_result:
+                        op_result = BitsharesOperation(**op_result.__dict__)
                         # if operation is relevant, add it to database and tell banker about it
-                        await add_operation(conn, **op_result.__dict__)
+                        await add_operation(conn, op_result)
 
                     else:
                         # Just refresh last account operations in database
@@ -169,8 +171,10 @@ class Gateway:
                     op_dto = rowproxy_to_dto(
                         op, BitsharesOperation, BitSharesOperationDTO
                     )
-                    await confirm_op(op_dto)
-                    await update_operation(conn, **op_dto.__dict__)
+                    is_changed = await confirm_op(op_dto)
+                    if is_changed:
+                        updated_op = BitsharesOperation(**op_dto.__dict__)
+                        await update_operation(conn, updated_op)
 
             await asyncio.sleep(BITSHARES_BLOCK_TIME)
 

@@ -21,12 +21,10 @@ async def test_engine():
 @pytest.mark.asyncio
 async def test_add_gateway_wallet():
     async with (await get_test_engine()).acquire() as conn:
-        first_result = await add_gateway_wallet(
-            conn, account_name=testnet_gateway_account_mock
-        )
-        second_result = await add_gateway_wallet(
-            conn, account_name=testnet_gateway_account_mock
-        )
+        wallet = GatewayWallet(account_name=testnet_gateway_account_mock)
+
+        first_result = await add_gateway_wallet(conn, wallet)
+        second_result = await add_gateway_wallet(conn, wallet)
 
     assert first_result
     assert second_result is False
@@ -76,12 +74,14 @@ async def test_add_operation():
         current_op = (
             await get_gateway_wallet(conn1, account_name=testnet_gateway_account_mock)
         ).last_operation
-        await add_operation(
-            conn1,
+
+        operation = BitsharesOperation(
             op_id=666,
             order_type=OrderType.WITHDRAWAL,
             to_account=testnet_gateway_account_mock,
         )
+
+        await add_operation(conn1, operation)
 
     assert current_op
     print(current_op)
@@ -99,44 +99,25 @@ async def test_add_operation():
 
 
 @pytest.mark.asyncio
-async def test_update_operation_from_raw_data():
-    async with (await get_test_engine()).acquire() as conn:
-        await add_operation(
-            conn,
-            op_id=666,
-            order_type=OrderType.WITHDRAWAL,
-            to_account=testnet_gateway_account_mock,
-            status=TxStatus.RECEIVED_NOT_CONFIRMED,
-        )
-
-        await update_operation(conn, 666, status=TxStatus.RECEIVED_AND_CONFIRMED)
-        current_value = (await get_operation(conn, 666)).status
-        assert current_value == TxStatus.RECEIVED_AND_CONFIRMED
-
-        await conn.execute(
-            delete(BitsharesOperation).where(BitsharesOperation.op_id == 666)
-        )
-
-
-@pytest.mark.asyncio
-async def test_update_operation_from_dto():
+async def test_update_operation():
     from dto import BitSharesOperation as BitSharesOperationDTO
 
     async with (await get_test_engine()).acquire() as conn:
-
-        await add_operation(
-            conn,
+        operation = BitsharesOperation(
             op_id=666,
             order_type=OrderType.WITHDRAWAL,
             to_account=testnet_gateway_account_mock,
-            status=TxStatus.RECEIVED_NOT_CONFIRMED,
         )
+
+        await add_operation(conn, operation)
 
         req = await get_operation(conn, 666)
         op_dto = rowproxy_to_dto(req, BitsharesOperation, BitSharesOperationDTO)
+
         op_dto.status = TxStatus.RECEIVED_AND_CONFIRMED
 
-        await update_operation(conn, **op_dto.__dict__)
+        updated_op = BitsharesOperation(**op_dto.__dict__)
+        await update_operation(conn, updated_op)
         current_value = (await get_operation(conn, 666)).status
         assert current_value == TxStatus.RECEIVED_AND_CONFIRMED
 
@@ -151,32 +132,36 @@ async def test_get_unconfirmed_operations():
         current_unconfirmed_ops = await get_unconfirmed_operations(conn)
         assert isinstance(current_unconfirmed_ops, list)
 
-        await add_operation(
-            conn,
+        operation_1 = BitsharesOperation(
             op_id=666,
             order_type=OrderType.WITHDRAWAL,
             to_account=testnet_gateway_account_mock,
             status=TxStatus.RECEIVED_NOT_CONFIRMED,
         )
 
-        await add_operation(
-            conn,
-            op_id=555,
-            order_type=OrderType.WITHDRAWAL,
-            to_account=testnet_gateway_account_mock,
-            status=TxStatus.ERROR,
-        )
+        await add_operation(conn, operation_1)
 
-        await add_operation(
-            conn,
-            op_id=444,
+        operation_2 = BitsharesOperation(
+            op_id=555,
             order_type=OrderType.WITHDRAWAL,
             to_account=testnet_gateway_account_mock,
             status=TxStatus.RECEIVED_AND_CONFIRMED,
         )
 
+        await add_operation(conn, operation_2)
+
+        operation_3 = BitsharesOperation(
+            op_id=444,
+            order_type=OrderType.WITHDRAWAL,
+            to_account=testnet_gateway_account_mock,
+            status=TxStatus.WAIT,
+        )
+
+        await add_operation(conn, operation_3)
+
         new_unconfirmed_ops = await get_unconfirmed_operations(conn)
-        assert len(new_unconfirmed_ops) - len(current_unconfirmed_ops) == 1
+
+        assert len(new_unconfirmed_ops) > len(current_unconfirmed_ops)
 
         await conn.execute(
             delete(BitsharesOperation).where(BitsharesOperation.op_id == 666)

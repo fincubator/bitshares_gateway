@@ -173,7 +173,7 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
         memo = await read_memo(op["op"][1].get("memo"))
 
         log.info(
-            f"{from_account.name} transfer {amount} to {to.name} with memo `{memo}`"
+            f"Op {op['id']}: {from_account.name} transfer {amount} to {to.name} with memo `{memo}`"
         )
 
         error = TxError.NO_ERROR
@@ -249,9 +249,10 @@ async def validate_withdrawal_memo(memo: str or dict) -> None:
         raise InvalidMemoMask(f"Flood memo: {memo}")
 
 
-async def confirm_op(op: BitSharesOperationDTO) -> None:
+async def confirm_op(op: BitSharesOperationDTO) -> bool:
 
     current_block_num = await get_current_block_num()
+    change = False
 
     if current_block_num > op.block_num:
         confirmations_now = current_block_num - op.block_num
@@ -261,9 +262,13 @@ async def confirm_op(op: BitSharesOperationDTO) -> None:
                 f"Seen new {confirmations_now - op.confirmations} confirmations in {op.op_id}"
             )
             op.confirmations = confirmations_now
+            change = True
 
         if op.confirmations >= BITSHARES_NEED_CONF:
             log.info(
                 f"Changing {op.op_id} status to {TxStatus.RECEIVED_AND_CONFIRMED.name}"
             )
             op.status = TxStatus.RECEIVED_AND_CONFIRMED
+            change = True
+
+    return change
