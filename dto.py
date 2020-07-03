@@ -67,3 +67,8 @@ class BitSharesOperation(DataTransferClass):
     tx_expiration: int = None
 
     error: TxError = None
+
+    def as_model(self):
+        from db_utils.models import BitsharesOperation as Model
+
+        return Model(**self.__dict__)

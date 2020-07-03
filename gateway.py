@@ -3,12 +3,18 @@ from rncryptor import DecryptionError
 
 from bitshares_utils import *
 from db_utils.queries import *
+from dto import BitSharesOperation as BitSharesOperationDTO
 from cryptor import get_wallet_keys, save_wallet_keys, encrypt, decrypt
+from utils import get_logger, rowproxy_to_dto
+
 from config import gateway_cfg
 
 #  Mock for database and zmq executor module
 db_exec = print
 zeromq_send = print
+
+
+log = get_logger("Gateway")
 
 
 class Gateway:
@@ -24,12 +30,12 @@ class Gateway:
         active_key = ""
         memo_key = ""
 
-        logging.info(f"Try to found encrypted keys of account {account_name}")
+        log.info(f"Try to found encrypted keys of account {account_name}")
 
         enc_keys = get_wallet_keys(account_name)
 
         if not enc_keys:
-            logging.info(f"{account_name} is new account. Let's add and encrypt keys\n")
+            log.info(f"{account_name} is new account. Let's add and encrypt keys\n")
             memo_key = getpass(f"Please Enter {account_name}'s active private key\n")
             active_key = getpass(
                 f"Ok.\nPlease Enter {account_name}'s memo active key\n"
@@ -45,7 +51,7 @@ class Gateway:
                     encrypt(active_key, password),
                     encrypt(memo_key, password),
                 )
-                logging.info(
+                log.info(
                     f"Successfully encrypted and stored in file config/.{account_name}.keys"
                 )
                 del password_confirm
@@ -57,15 +63,15 @@ class Gateway:
                 try:
                     active_key = decrypt(enc_keys["active"], password)
                     memo_key = decrypt(enc_keys["memo"], password)
-                    logging.info(
+                    log.info(
                         f"Successfully decrypted {account_name} keys:\n"
                         f"active: {active_key[:3] + '...' + active_key[-3:]}\n"
                         f"memo: {memo_key[:3] + '...' + memo_key[-3:]}\n"
                     )
                 except DecryptionError:
-                    logging.warning("Wrong password!")
+                    log.warning("Wrong password!")
                 except Exception as ex:
-                    logging.exception(ex)
+                    log.exception(ex)
 
         gateway_cfg["keys"] = [active_key, memo_key]
         del password
@@ -86,9 +92,10 @@ class Gateway:
         """
 
         async with self.db.acquire() as conn:
-            is_new = await add_gateway_wallet(conn, account_name=gateway_cfg["account"])
+            wallet = GatewayWallet(account_name=gateway_cfg["account"])
+            is_new = await add_gateway_wallet(conn, wallet)
             if is_new:
-                logging.info(
+                log.info(
                     f"Account {gateway_cfg['account']} is new. Let's retrieve data from blockchain and"
                     f" record it in database!"
                 )
@@ -99,12 +106,10 @@ class Gateway:
                 await update_last_operation(conn, gateway_cfg["account"], last_op)
                 await update_last_parsed_block(conn, gateway_cfg["account"], last_block)
 
-            logging.info(
-                f"Retrieve account {gateway_cfg['account']} data from database"
-            )
+            log.info(f"Retrieve account {gateway_cfg['account']} data from database")
             self.gateway_wallet = await get_gateway_wallet(conn, gateway_cfg["account"])
 
-            logging.info(
+            log.info(
                 f"Start from operation {self.gateway_wallet.last_operation}, "
                 f"block number {self.gateway_wallet.last_parsed_block}"
             )
@@ -117,7 +122,7 @@ class Gateway:
         All new operations will be validate and insert in database. Booker will be notified about it.
         """
 
-        logging.info(
+        log.info(
             f"Watching {self.bitshares_instance.config['default_account']} for new operations started"
         )
 
@@ -129,7 +134,7 @@ class Gateway:
             if not new_ops:
                 await asyncio.sleep(1)
 
-            logging.info(f"Found new {len(new_ops)} operations")
+            log.info(f"Found new {len(new_ops)} operations")
 
             for op in new_ops:
                 # BitShares have '1.11.1234567890' so need to retrieve integer ID of operation
@@ -140,8 +145,9 @@ class Gateway:
                 async with self.db.acquire() as conn:
 
                     if op_result:
+                        op_result = BitsharesOperation(**op_result.__dict__)
                         # if operation is relevant, add it to database and tell banker about it
-                        await add_operation(conn, **op_result.__dict__)
+                        await add_operation(conn, op_result)
 
                     else:
                         # Just refresh last account operations in database
@@ -153,30 +159,41 @@ class Gateway:
                             last_operation=op_id,
                         )
 
+    async def watch_unconfirmed_operations(self):
+        # Grep unconfirmed transactions from base and try to confirm it
+        log.info(f"Watching unconfirmed operations")
+        while True:
+            async with self.db.acquire() as conn:
+
+                unconfirmed_ops = await get_unconfirmed_operations(conn)
+                for op in unconfirmed_ops:
+
+                    op_dto = rowproxy_to_dto(
+                        op, BitsharesOperation, BitSharesOperationDTO
+                    )
+                    is_changed = await confirm_op(op_dto)
+                    if is_changed:
+                        updated_op = BitsharesOperation(**op_dto.__dict__)
+                        await update_operation(conn, updated_op)
+
+            await asyncio.sleep(BITSHARES_BLOCK_TIME)
+
     async def watch_banker(self):
         """Await Banker"""
-        logging.info(f"Await for Booker commands")
+        log.info(f"Await for Booker commands")
         while True:
             await asyncio.sleep(1)
             # if receive new tx from banker:
             # check it's status
             # add to database with State 0
 
-    async def watch_unconfirmed_operations(self):
-        # Grep unconfirmed transactions from base and try to confirm it
-        logging.info(f"Checking unconfirmed txs")
-        while True:
-            await asyncio.sleep(1)
-
     async def watch_blocks(self):
-        logging.info(f"Parsing blocks...")
+        log.info(f"Parsing blocks...")
         pass
         # await parse_blocks(start_block_num=self.gateway_wallet.last_parsed_block)
 
     async def main_loop(self):
         """Main gateway loop"""
-        logging.basicConfig(level=logging.INFO)
-
         self.db = await init_database()
 
         if not gateway_cfg.get("keys"):
@@ -190,7 +207,7 @@ class Gateway:
         _sync = await self.synchronize()
         assert _sync
 
-        logging.info(
+        log.info(
             f"\n"
             f"     Run {gateway_cfg['gateway_prefix']}.{gateway_cfg['gateway_distribute_asset']} "
             f"BitShares gateway\n"

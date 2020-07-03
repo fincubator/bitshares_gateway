@@ -247,7 +247,6 @@ async def test_withdrawal_validate_success():
 
     withdrawal = await broadcast_tx(_withdrawal)
     new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
-    assert len(new_ops) == 1
 
     txid_match = False
     for op in new_ops:
@@ -257,8 +256,8 @@ async def test_withdrawal_validate_success():
                 txid_match = True
                 assert len(tx["operations"]) == 1
                 validated = await validate_op(op)
-                assert validated.order_type == OrderType.WITHDRAWAL.value
-                assert not validated.error != TxError.NO_ERROR.value
+                assert validated.order_type == OrderType.WITHDRAWAL
+                assert not validated.error != TxError.NO_ERROR
 
     assert txid_match
 
@@ -288,7 +287,6 @@ async def test_withdrawal_validate_bad_amount_less_min():
 
     withdrawal = await broadcast_tx(_withdrawal)
     new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
-    assert len(new_ops) == 1
 
     txid_match = False
     for op in new_ops:
@@ -298,8 +296,8 @@ async def test_withdrawal_validate_bad_amount_less_min():
                 txid_match = True
                 assert len(tx["operations"]) == 1
                 validated = await validate_op(op)
-                assert validated.error == TxError.LESS_MIN.value
-                assert validated.status == TxStatus.ERROR.value
+                assert validated.error == TxError.LESS_MIN
+                assert validated.status == TxStatus.ERROR
 
     assert txid_match
 
@@ -329,7 +327,6 @@ async def test_withdrawal_validate_bad_amount_greater_max():
 
     withdrawal = await broadcast_tx(_withdrawal)
     new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
-    assert len(new_ops) == 1
 
     txid_match = False
     for op in new_ops:
@@ -339,8 +336,8 @@ async def test_withdrawal_validate_bad_amount_greater_max():
                 txid_match = True
                 assert len(tx["operations"]) == 1
                 validated = await validate_op(op)
-                assert validated.error == TxError.GREATER_MAX.value
-                assert validated.status == TxStatus.ERROR.value
+                assert validated.error == TxError.GREATER_MAX
+                assert validated.status == TxStatus.ERROR
 
     assert txid_match
 
@@ -370,7 +367,6 @@ async def test_withdrawal_validate_bad_asset():
 
     withdrawal = await broadcast_tx(_withdrawal)
     new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
-    assert len(new_ops) == 1
 
     txid_match = False
     for op in new_ops:
@@ -380,8 +376,8 @@ async def test_withdrawal_validate_bad_asset():
                 txid_match = True
                 assert len(tx["operations"]) == 1
                 validated = await validate_op(op)
-                assert validated.error == TxError.BAD_ASSET.value
-                assert validated.status == TxStatus.ERROR.value
+                assert validated.error == TxError.BAD_ASSET
+                assert validated.status == TxStatus.ERROR
 
     assert txid_match
 
@@ -410,7 +406,6 @@ async def test_withdrawal_validate_memo_no_memo():
 
     withdrawal = await broadcast_tx(_withdrawal)
     new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
-    assert len(new_ops) == 1
     txid_match = False
     for op in new_ops:
         op_block: Block = await Block(op["block_num"])
@@ -419,8 +414,8 @@ async def test_withdrawal_validate_memo_no_memo():
                 txid_match = True
                 assert len(tx["operations"]) == 1
                 validated = await validate_op(op)
-                assert validated.error == TxError.NO_MEMO.value
-                assert validated.status == TxStatus.ERROR.value
+                assert validated.error == TxError.NO_MEMO
+                assert validated.status == TxStatus.ERROR
 
     assert txid_match
 
@@ -450,7 +445,6 @@ async def test_withdrawal_validate_flood_memo():
 
     withdrawal = await broadcast_tx(_withdrawal)
     new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
-    assert len(new_ops) == 1
     txid_match = False
     for op in new_ops:
         op_block: Block = await Block(op["block_num"])
@@ -459,8 +453,8 @@ async def test_withdrawal_validate_flood_memo():
                 txid_match = True
                 assert len(tx["operations"]) == 1
                 validated = await validate_op(op)
-                assert validated.error == TxError.FLOOD_MEMO.value
-                assert validated.status == TxStatus.ERROR.value
+                assert validated.error == TxError.FLOOD_MEMO
+                assert validated.status == TxStatus.ERROR
 
     assert txid_match
 
@@ -489,7 +483,6 @@ async def test_deposit_validate_success():
 
     withdrawal = await broadcast_tx(_withdrawal)
     new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
-    assert len(new_ops) == 1
 
     txid_match = False
     for op in new_ops:
@@ -499,8 +492,8 @@ async def test_deposit_validate_success():
                 txid_match = True
                 assert len(tx["operations"]) == 1
                 validated = await validate_op(op)
-                assert validated.order_type == OrderType.DEPOSIT.value
-                assert validated.error == TxError.NO_ERROR.value
+                assert validated.order_type == OrderType.DEPOSIT
+                assert validated.error == TxError.NO_ERROR
 
     assert txid_match
 
@@ -529,7 +522,6 @@ async def test_deposit_validate_less_min():
 
     withdrawal = await broadcast_tx(_withdrawal)
     new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
-    assert len(new_ops) == 1
 
     txid_match = False
     for op in new_ops:
@@ -539,9 +531,9 @@ async def test_deposit_validate_less_min():
                 txid_match = True
                 assert len(tx["operations"]) == 1
                 validated = await validate_op(op)
-                assert validated.order_type == OrderType.DEPOSIT.value
-                assert validated.status == TxStatus.ERROR.value
-                assert validated.error == TxError.LESS_MIN.value
+                assert validated.order_type == OrderType.DEPOSIT
+                assert validated.status == TxStatus.ERROR
+                assert validated.error == TxError.LESS_MIN
 
     assert txid_match
 
@@ -570,7 +562,6 @@ async def test_deposit_validate_greater_max():
 
     withdrawal = await broadcast_tx(_withdrawal)
     new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
-    assert len(new_ops) == 1
 
     txid_match = False
     for op in new_ops:
@@ -580,8 +571,40 @@ async def test_deposit_validate_greater_max():
                 txid_match = True
                 assert len(tx["operations"]) == 1
                 validated = await validate_op(op)
-                assert validated.order_type == OrderType.DEPOSIT.value
-                assert validated.status == TxStatus.ERROR.value
-                assert validated.error == TxError.GREATER_MAX.value
+                assert validated.order_type == OrderType.DEPOSIT
+                assert validated.status == TxStatus.ERROR
+                assert validated.error == TxError.GREATER_MAX
 
     assert txid_match
+
+
+@pytest.mark.asyncio
+async def test_confirm_old_op():
+    await init_bitshares(
+        account=testnet_gateway_account,
+        node=testnet_bitshares_nodes,
+        keys=[
+            testnet_user_active,
+            testnet_user_memo,
+            testnet_gateway_active,
+            testnet_gateway_memo,
+        ],
+    )
+
+    op_dto = BitSharesOperationDTO(
+        op_id=43571314,
+        order_type=OrderType.DEPOSIT,
+        asset=testnet_eth_asset,
+        from_account=testnet_gateway_account,
+        to_account=testnet_user_account,
+        amount=0.1,
+        status=TxStatus.RECEIVED_NOT_CONFIRMED,
+        confirmations=0,
+        block_num=37899972,
+        tx_created_at=(await Block(37899972)).time(),
+        error=TxError.NO_ERROR,
+    )
+
+    await confirm_op(op_dto)
+    assert op_dto.status == TxStatus.RECEIVED_AND_CONFIRMED
+    assert op_dto.confirmations > 0
