@@ -176,48 +176,48 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
             f"{from_account.name} transfer {amount} to {to.name} with memo `{memo}`"
         )
 
-        error = TxError.NO_ERROR.value
-        status = TxStatus.RECEIVED_NOT_CONFIRMED.value
+        error = TxError.NO_ERROR
+        status = TxStatus.RECEIVED_NOT_CONFIRMED
 
         # Validate asset
         if asset.symbol != gateway_cfg["gateway_distribute_asset"]:
-            error = TxError.BAD_ASSET.value
+            error = TxError.BAD_ASSET
 
         # Validate account
         if from_account.name == instance.config["default_account"]:
-            order_type = OrderType.DEPOSIT.value
+            order_type = OrderType.DEPOSIT
         elif to.name == instance.config["default_account"]:
-            order_type = OrderType.WITHDRAWAL.value
+            order_type = OrderType.WITHDRAWAL
         else:
             raise  # Just pretty code, this situation is impossible
 
         # Validate amount
-        if order_type == OrderType.WITHDRAWAL.value:
+        if order_type == OrderType.WITHDRAWAL:
 
             if amount < gateway_cfg["gateway_min_withdrawal"]:
-                error = TxError.LESS_MIN.value
+                error = TxError.LESS_MIN
 
             if amount > gateway_cfg["gateway_max_withdrawal"]:
-                error = TxError.GREATER_MAX.value
+                error = TxError.GREATER_MAX
 
             if not memo:
-                error = TxError.NO_MEMO.value
+                error = TxError.NO_MEMO
             else:
                 try:
                     await validate_withdrawal_memo(memo)
                 except InvalidMemoMask:
-                    error = TxError.FLOOD_MEMO.value
+                    error = TxError.FLOOD_MEMO
 
-        if order_type == OrderType.DEPOSIT.value:
+        if order_type == OrderType.DEPOSIT:
 
             if amount < gateway_cfg["gateway_min_deposit"]:
-                error = TxError.LESS_MIN.value
+                error = TxError.LESS_MIN
 
             if amount > gateway_cfg["gateway_max_withdrawal"]:
-                error = TxError.GREATER_MAX.value
+                error = TxError.GREATER_MAX
 
-        if error != TxError.NO_ERROR.value:
-            status = TxStatus.ERROR.value
+        if error != TxError.NO_ERROR:
+            status = TxStatus.ERROR
 
         op_dto = BitSharesOperationDTO(
             op_id=int(op["id"].split(".")[2]),
@@ -266,4 +266,4 @@ async def confirm_op(op: BitSharesOperationDTO) -> None:
             log.info(
                 f"Changing {op.op_id} status to {TxStatus.RECEIVED_AND_CONFIRMED.name}"
             )
-            op.status = TxStatus.RECEIVED_AND_CONFIRMED.value
+            op.status = TxStatus.RECEIVED_AND_CONFIRMED

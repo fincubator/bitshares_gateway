@@ -67,7 +67,7 @@ async def delete_gateway_wallet(conn: SAConn, account_name: str):
 async def get_unconfirmed_operations(conn: SAConn):
     cursor = await conn.execute(
         select([BitsharesOperation])
-        .where(BitsharesOperation.status == TxStatus.RECEIVED_NOT_CONFIRMED.value)
+        .where(BitsharesOperation.status == TxStatus.RECEIVED_NOT_CONFIRMED)
         .as_scalar()
     )
     result = await cursor.fetchall()
@@ -91,9 +91,9 @@ async def add_operation(conn: SAConn, **operation):
         await conn.execute(insert(BitsharesOperation).values(**operation))
         operation_db_instance = await get_operation(conn, op_id=operation["op_id"])
 
-        if operation_db_instance.order_type is OrderType.DEPOSIT.value:
+        if operation_db_instance.order_type is OrderType.DEPOSIT:
             account = operation_db_instance.from_account
-        elif operation_db_instance.order_type == OrderType.WITHDRAWAL.value:
+        elif operation_db_instance.order_type == OrderType.WITHDRAWAL:
             account = operation_db_instance.to_account
         else:
             raise
