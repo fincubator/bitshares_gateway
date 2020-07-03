@@ -1,6 +1,7 @@
 import pytest
 
 from db_utils.queries import *
+from utils import rowproxy_to_dto
 
 from .fixtures import testnet_gateway_account_mock
 
@@ -95,6 +96,97 @@ async def test_add_operation():
         delete(BitsharesOperation).where(BitsharesOperation.op_id == 666)
     )
     await update_last_operation(conn1, testnet_gateway_account_mock, current_op)
+
+
+@pytest.mark.asyncio
+async def test_update_operation_from_raw_data():
+    async with (await get_test_engine()).acquire() as conn:
+        await add_operation(
+            conn,
+            op_id=666,
+            order_type=OrderType.WITHDRAWAL.value,
+            to_account=testnet_gateway_account_mock,
+            status=TxStatus.RECEIVED_NOT_CONFIRMED.value,
+        )
+
+        await update_operation(conn, 666, status=TxStatus.RECEIVED_AND_CONFIRMED.value)
+        current_value = (await get_operation(conn, 666)).status
+        assert current_value == TxStatus.RECEIVED_AND_CONFIRMED.value
+
+        await conn.execute(
+            delete(BitsharesOperation).where(BitsharesOperation.op_id == 666)
+        )
+
+
+@pytest.mark.asyncio
+async def test_update_operation_from_dto():
+    from dto import BitSharesOperation as BitSharesOperationDTO
+
+    async with (await get_test_engine()).acquire() as conn:
+
+        await add_operation(
+            conn,
+            op_id=666,
+            order_type=OrderType.WITHDRAWAL.value,
+            to_account=testnet_gateway_account_mock,
+            status=TxStatus.RECEIVED_NOT_CONFIRMED.value,
+        )
+
+        req = await get_operation(conn, 666)
+        op_dto = rowproxy_to_dto(req, BitsharesOperation, BitSharesOperationDTO)
+        op_dto.status = TxStatus.RECEIVED_AND_CONFIRMED.value
+
+        await update_operation(conn, **op_dto.__dict__)
+        current_value = (await get_operation(conn, 666)).status
+        assert current_value == TxStatus.RECEIVED_AND_CONFIRMED.value
+
+        await conn.execute(
+            delete(BitsharesOperation).where(BitsharesOperation.op_id == 666)
+        )
+
+
+@pytest.mark.asyncio
+async def test_get_unconfirmed_operations():
+    async with (await get_test_engine()).acquire() as conn:
+        current_unconfirmed_ops = await get_unconfirmed_operations(conn)
+        assert isinstance(current_unconfirmed_ops, list)
+
+        await add_operation(
+            conn,
+            op_id=666,
+            order_type=OrderType.WITHDRAWAL.value,
+            to_account=testnet_gateway_account_mock,
+            status=TxStatus.RECEIVED_NOT_CONFIRMED.value,
+        )
+
+        await add_operation(
+            conn,
+            op_id=555,
+            order_type=OrderType.WITHDRAWAL.value,
+            to_account=testnet_gateway_account_mock,
+            status=TxStatus.ERROR.value,
+        )
+
+        await add_operation(
+            conn,
+            op_id=444,
+            order_type=OrderType.WITHDRAWAL.value,
+            to_account=testnet_gateway_account_mock,
+            status=TxStatus.RECEIVED_AND_CONFIRMED.value,
+        )
+
+        new_unconfirmed_ops = await get_unconfirmed_operations(conn)
+        assert len(new_unconfirmed_ops) - len(current_unconfirmed_ops) == 1
+
+        await conn.execute(
+            delete(BitsharesOperation).where(BitsharesOperation.op_id == 666)
+        )
+        await conn.execute(
+            delete(BitsharesOperation).where(BitsharesOperation.op_id == 555)
+        )
+        await conn.execute(
+            delete(BitsharesOperation).where(BitsharesOperation.op_id == 444)
+        )
 
 
 @pytest.mark.asyncio

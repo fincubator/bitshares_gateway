@@ -104,7 +104,7 @@ pipenv run pytest
 ```
 
 ##### Where is gateway wallet account private keys?
-All keys stored as base64-encoded strings in file `config/.accountname.keys`.
+Wallet account's keys stored as base64-encoded strings in file `config/.accountname.keys`.
 This file will be created after first run with filled `gateway.yml` file.
 
 Example:
