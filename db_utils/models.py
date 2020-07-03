@@ -49,6 +49,6 @@ class BitsharesOperation(Base):
 
     tx_hash = sa.Column(sa.String)
     tx_created_at = sa.Column(sa.DateTime, default=datetime.datetime.utcnow())
-    tx_expiration = sa.Column()
+    tx_expiration = sa.Column(sa.DateTime)
 
     error = sa.Column(sa.Integer)

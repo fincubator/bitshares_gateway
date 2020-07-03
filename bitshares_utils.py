@@ -1,5 +1,4 @@
 import asyncio
-import logging
 
 from bitshares.aio import BitShares
 from bitshares.aio.account import Account
@@ -13,6 +12,7 @@ from bitshares.aio.instance import (
 )
 from bitsharesbase.signedtransactions import Signed_Transaction
 from graphenecommon.exceptions import BlockDoesNotExistsException
+from grapheneapi.exceptions import NumRetriesReached
 
 from dto import (
     OrderType,
@@ -20,7 +20,11 @@ from dto import (
     TxError,
     BitSharesOperation as BitSharesOperationDTO,
 )
-from config import BITSHARES_BLOCK_TIME, gateway_cfg
+from utils import get_logger
+from config import BITSHARES_BLOCK_TIME, BITSHARES_NEED_CONF, gateway_cfg
+
+
+log = get_logger("BitSharesUtils")
 
 
 class InvalidMemoMask(Exception):
@@ -39,7 +43,14 @@ async def init_bitshares(
         )
     bitshares_instance = BitShares(node=node, keys=keys, loop=loop)
     set_shared_bitshares_instance(bitshares_instance)
-    await bitshares_instance.connect()
+
+    try:
+        await bitshares_instance.connect()
+    except NumRetriesReached:
+        log.exception("All nodes is unreachable. Exiting.")
+    except Exception as ex:
+        log.exception(f"Unable to connect BitShares: {ex}. Exiting.")
+
     bitshares_instance.set_default_account(account)
     return bitshares_instance
 
@@ -122,7 +133,7 @@ async def parse_blocks(start_block_num: int):
         try:
             block: Block = await Block(start_block_num)
             if block["transactions"]:
-                logging.info(f"Start to parse operations in block {block}")
+                log.info(f"Start to parse operations in block {block}")
                 # TODO call validate_op()
 
             start_block_num += 1
@@ -144,7 +155,7 @@ async def read_memo(memo_obj: dict) -> str:
 
 
 async def validate_op(op: dict) -> BitSharesOperationDTO:
-    """Parse BitShares operation body, check order_type, error, etc."""
+    """Parse BitShares operation body from Account.history generator, check fields. Return DataTransferObject"""
     instance = shared_bitshares_instance()
 
     # Check operations types
@@ -161,7 +172,7 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
         asset = await Asset(amount["asset"])
         memo = await read_memo(op["op"][1].get("memo"))
 
-        logging.info(
+        log.info(
             f"{from_account.name} transfer {amount} to {to.name} with memo `{memo}`"
         )
 
@@ -215,8 +226,10 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
             from_account=from_account.name,
             to_account=to.name,
             amount=amount.amount,
-            block_num=op["block_num"],
             status=status,
+            confirmations=0,
+            block_num=op["block_num"],
+            tx_created_at=(await Block(op["block_num"])).time(),
             error=error,
         )
 
@@ -234,3 +247,23 @@ async def validate_withdrawal_memo(memo: str or dict) -> None:
         or len(memo.split(":")[1]) == 0
     ):
         raise InvalidMemoMask(f"Flood memo: {memo}")
+
+
+async def confirm_op(op: BitSharesOperationDTO) -> None:
+
+    current_block_num = await get_current_block_num()
+
+    if current_block_num > op.block_num:
+        confirmations_now = current_block_num - op.block_num
+
+        if confirmations_now > op.confirmations:
+            log.info(
+                f"Seen new {confirmations_now - op.confirmations} confirmations in {op.op_id}"
+            )
+            op.confirmations = confirmations_now
+
+        if op.confirmations >= BITSHARES_NEED_CONF:
+            log.info(
+                f"Changing {op.op_id} status to {TxStatus.RECEIVED_AND_CONFIRMED.name}"
+            )
+            op.status = TxStatus.RECEIVED_AND_CONFIRMED.value
