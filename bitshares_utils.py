@@ -218,6 +218,7 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
 
         if error != TxError.NO_ERROR:
             status = TxStatus.ERROR
+            log.info(f"Operation {op['id'].split('.')[2]} catch Error: {error.name}")
 
         op_dto = BitSharesOperationDTO(
             op_id=int(op["id"].split(".")[2]),

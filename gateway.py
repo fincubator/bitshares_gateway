@@ -194,8 +194,8 @@ class Gateway:
         # await parse_blocks(start_block_num=self.gateway_wallet.last_parsed_block)
 
     async def listen_http(self):
-        log.info("Listen HTTP...")
         await start_http_server()
+        log.info("Listen HTTP...")
 
     async def main_loop(self):
         """Main gateway loop"""

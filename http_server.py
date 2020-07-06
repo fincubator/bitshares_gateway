@@ -20,7 +20,7 @@ async def start_http_server():
     app.add_routes(routes)
     await runner.setup()
     site = web.TCPSite(runner, http_config["host"], http_config["port"])
+    await site.start()
     log.info(
         f"Starting http server on http://{http_config['host']}/{http_config['port']}"
     )
-    await site.start()
