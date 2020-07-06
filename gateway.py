@@ -6,6 +6,7 @@ from db_utils.queries import *
 from dto import BitSharesOperation as BitSharesOperationDTO
 from cryptor import get_wallet_keys, save_wallet_keys, encrypt, decrypt
 from utils import get_logger, rowproxy_to_dto
+from http_server import start_http_server
 
 from config import gateway_cfg
 
@@ -192,6 +193,10 @@ class Gateway:
         pass
         # await parse_blocks(start_block_num=self.gateway_wallet.last_parsed_block)
 
+    async def listen_http(self):
+        log.info("Listen HTTP...")
+        await start_http_server()
+
     async def main_loop(self):
         """Main gateway loop"""
         self.db = await init_database()
@@ -223,4 +228,5 @@ class Gateway:
             asyncio.create_task(self.watch_account_history()),
             asyncio.create_task(self.watch_blocks()),
             asyncio.create_task(self.watch_unconfirmed_operations()),
+            asyncio.create_task(self.listen_http()),
         )

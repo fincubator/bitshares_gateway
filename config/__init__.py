@@ -58,3 +58,5 @@ sql_conn_url = (
     f"@"
     f"{pg_config['host']}:{pg_config['port']}/{pg_config['database']}"
 )
+
+http_config = {"host": os.getenv("HTTP_HOST"), "port": os.getenv("HTTP_PORT")}
