@@ -240,7 +240,7 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
         except TransactionNotFound as ex:
             log.exception(ex)
             tx_hash = "Unknown"
-            error = TxError.OP_COLLISION
+            error = TxError.TX_HASH_NOT_FOUND
         except Exception as ex:
             log.exception(ex)
             tx_hash = "Unknown"
