@@ -14,13 +14,13 @@ from bitsharesbase.signedtransactions import Signed_Transaction
 from graphenecommon.exceptions import BlockDoesNotExistsException
 from grapheneapi.exceptions import NumRetriesReached
 
-from dto import (
+from src.dto import (
     OrderType,
     TxStatus,
     TxError,
     BitSharesOperation as BitSharesOperationDTO,
 )
-from utils import get_logger
+from src.utils import get_logger
 from config import BITSHARES_BLOCK_TIME, BITSHARES_NEED_CONF, gateway_cfg
 
 

@@ -63,10 +63,10 @@ It means that if you want to run `Bitcoin/BITSHARES.BITCOIN_ASSET` exchange, you
 Also it means that if you want to run 10 cryptocurrency exchanges, you need 10 instances of BitShares Gateway, 10 coin (Native)
 gateways and one [Booker]
 
-`Gateway` class in `gateway.py` file is a heart of project logic. It is still in development.
+`Gateway` class in `src/gateway.py` file is a heart of project logic. It is still in development.
 
 ##### Using bitshares_utils:
-There is `bitshares_utils.py` module - useful async python tools over [Pybitshares] allow to build gateway's algorithms
+There is `src/bitshares_utils.py` module - useful async python tools over [Pybitshares] allow to build gateway's algorithms
 simple and fast.
 
 ```python
@@ -74,7 +74,7 @@ simple and fast.
 
 import asyncio
 
-from bitshares_utils import *
+from src.bitshares_utils import *
 
 async def issue_loop_example():
     """Setup bitshares instance"""

@@ -1,6 +1,6 @@
 import pytest
 
-from bitshares_utils import *
+from src.bitshares_utils import *
 
 from .fixtures import *
 

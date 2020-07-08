@@ -1,12 +1,12 @@
 from getpass import getpass
 from rncryptor import DecryptionError
 
-from bitshares_utils import *
-from db_utils.queries import *
-from dto import BitSharesOperation as BitSharesOperationDTO
-from cryptor import get_wallet_keys, save_wallet_keys, encrypt, decrypt
-from utils import get_logger, rowproxy_to_dto
-from http_server import start_http_server
+from src.bitshares_utils import *
+from src.db_utils.queries import *
+from src.dto import BitSharesOperation as BitSharesOperationDTO
+from src.cryptor import get_wallet_keys, save_wallet_keys, encrypt, decrypt
+from src.utils import get_logger, rowproxy_to_dto
+from src.http_server import start_http_server
 
 from config import gateway_cfg
 

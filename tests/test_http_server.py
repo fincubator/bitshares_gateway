@@ -3,7 +3,7 @@ from aiohttp import web
 from aiohttp.web import Application
 from aiohttp.test_utils import TestClient, TestServer
 
-from http_server import is_alive
+from src.http_server import is_alive
 
 
 @pytest.mark.asyncio
