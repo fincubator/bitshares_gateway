@@ -234,7 +234,6 @@ async def test_withdrawal_validate_success():
             testnet_gateway_memo,
         ],
     )
-
     previous_last_op_num = await get_last_op_num(testnet_gateway_account)
 
     _withdrawal = await asset_transfer(
@@ -252,7 +251,9 @@ async def test_withdrawal_validate_success():
     for op in new_ops:
         op_block: Block = await Block(op["block_num"])
         for tx in op_block["transactions"]:
-            if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
+            broadcasted_id = Signed_Transaction(withdrawal).id
+            in_block_id = Signed_Transaction(tx).id
+            if broadcasted_id == in_block_id:
                 txid_match = True
                 assert len(tx["operations"]) == 1
                 validated = await validate_op(op)
@@ -474,21 +475,22 @@ async def test_deposit_validate_success():
 
     previous_last_op_num = await get_last_op_num(testnet_gateway_account)
 
-    _withdrawal = await asset_transfer(
+    _deposit = await asset_transfer(
         account=testnet_gateway_account,
         to=testnet_user_account,
         amount=0.1,
         asset=testnet_eth_asset,
+        memo="flood",
     )
 
-    withdrawal = await broadcast_tx(_withdrawal)
+    deposit = await broadcast_tx(_deposit)
     new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
 
     txid_match = False
     for op in new_ops:
         op_block: Block = await Block(op["block_num"])
         for tx in op_block["transactions"]:
-            if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
+            if Signed_Transaction(deposit).id == Signed_Transaction(tx).id:
                 txid_match = True
                 assert len(tx["operations"]) == 1
                 validated = await validate_op(op)
@@ -513,21 +515,22 @@ async def test_deposit_validate_less_min():
 
     previous_last_op_num = await get_last_op_num(testnet_gateway_account)
 
-    _withdrawal = await asset_transfer(
+    _deposit = await asset_transfer(
         account=testnet_gateway_account,
         to=testnet_user_account,
         amount=test_gateway_min_deposit * 0.99,
         asset=testnet_eth_asset,
+        memo="flood",
     )
 
-    withdrawal = await broadcast_tx(_withdrawal)
+    deposit = await broadcast_tx(_deposit)
     new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
 
     txid_match = False
     for op in new_ops:
         op_block: Block = await Block(op["block_num"])
         for tx in op_block["transactions"]:
-            if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
+            if Signed_Transaction(deposit).id == Signed_Transaction(tx).id:
                 txid_match = True
                 assert len(tx["operations"]) == 1
                 validated = await validate_op(op)
@@ -553,21 +556,22 @@ async def test_deposit_validate_greater_max():
 
     previous_last_op_num = await get_last_op_num(testnet_gateway_account)
 
-    _withdrawal = await asset_transfer(
+    _deposit = await asset_transfer(
         account=testnet_gateway_account,
         to=testnet_user_account,
         amount=test_gateway_max_deposit * 1.11,
         asset=testnet_eth_asset,
     )
 
-    withdrawal = await broadcast_tx(_withdrawal)
+    deposit = await broadcast_tx(_deposit)
     new_ops = await wait_new_account_ops(last_op=previous_last_op_num)
 
     txid_match = False
     for op in new_ops:
         op_block: Block = await Block(op["block_num"])
         for tx in op_block["transactions"]:
-            if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
+            if Signed_Transaction(deposit).id == Signed_Transaction(tx).id:
+
                 txid_match = True
                 assert len(tx["operations"]) == 1
                 validated = await validate_op(op)
@@ -608,3 +612,25 @@ async def test_confirm_old_op():
     await confirm_op(op_dto)
     assert op_dto.status == TxStatus.RECEIVED_AND_CONFIRMED
     assert op_dto.confirmations > 0
+
+
+@pytest.mark.asyncio
+async def test_get_tx_hash_from_op_success():
+    await init_bitshares(
+        account=testnet_gateway_account,
+        node=testnet_bitshares_nodes,
+        keys=[
+            testnet_user_active,
+            testnet_user_memo,
+            testnet_gateway_active,
+            testnet_gateway_memo,
+        ],
+    )
+
+    account = await Account(testnet_gateway_account)
+    history_agen = account.history()
+    op = [op async for op in history_agen][0]
+    tx_hash = await get_tx_hash_from_op(op)
+
+    assert tx_hash
+    assert isinstance(tx_hash, str)

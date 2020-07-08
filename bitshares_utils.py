@@ -32,6 +32,16 @@ class InvalidMemoMask(Exception):
         super().__init__(message)
 
 
+class TransactionNotFound(Exception):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class OperationsCollision(Exception):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 async def init_bitshares(
     account: str = None, node: str or list = None, keys: list = None, loop=None
 ) -> BitShares:
@@ -41,7 +51,7 @@ async def init_bitshares(
             "You need to provide an gateway account. Gateway instance can not work without it!\n"
             "Check that your account is owner of asset that your instance will distribute!"
         )
-    bitshares_instance = BitShares(node=node, keys=keys, loop=loop)
+    bitshares_instance = BitShares(node=node, keys=keys, blocking="head", loop=loop)
     set_shared_bitshares_instance(bitshares_instance)
 
     try:
@@ -172,9 +182,13 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
         asset = await Asset(amount["asset"])
         memo = await read_memo(op["op"][1].get("memo"))
 
-        log.info(
-            f"Op {op['id']}: {from_account.name} transfer {amount} to {to.name} with memo `{memo}`"
+        op_log_string = (
+            f"Op {op['id']}: {from_account.name} transfer {amount} to {to.name}"
         )
+        if memo:
+            op_log_string += f" with memo `{memo}`"
+
+        log.info(op_log_string)
 
         error = TxError.NO_ERROR
         status = TxStatus.RECEIVED_NOT_CONFIRMED
@@ -191,7 +205,7 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
         else:
             raise  # Just pretty code, this situation is impossible
 
-        # Validate amount
+        # Validate amount for withdrawals
         if order_type == OrderType.WITHDRAWAL:
 
             if amount < gateway_cfg["gateway_min_withdrawal"]:
@@ -208,6 +222,7 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
                 except InvalidMemoMask:
                     error = TxError.FLOOD_MEMO
 
+        # Validate amount for deposits
         if order_type == OrderType.DEPOSIT:
 
             if amount < gateway_cfg["gateway_min_deposit"]:
@@ -216,9 +231,28 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
             if amount > gateway_cfg["gateway_max_withdrawal"]:
                 error = TxError.GREATER_MAX
 
+        try:
+            tx_hash = await get_tx_hash_from_op(op)
+        except OperationsCollision as ex:
+            log.exception(ex)
+            tx_hash = "Unknown"
+            error = TxError.OP_COLLISION
+        except TransactionNotFound as ex:
+            log.exception(ex)
+            tx_hash = "Unknown"
+            error = TxError.OP_COLLISION
+        except Exception as ex:
+            log.exception(ex)
+            tx_hash = "Unknown"
+            error = TxError.UNKNOWN_ERROR
+
         if error != TxError.NO_ERROR:
             status = TxStatus.ERROR
-            log.info(f"Operation {op['id'].split('.')[2]} catch Error: {error.name}")
+            log.info(f"Op {op['id']}: catch Error: {error.name}")
+        else:
+            log.info(
+                f"Op {op['id']}: operation is valid and will be processed as {order_type.name}"
+            )
 
         op_dto = BitSharesOperationDTO(
             op_id=int(op["id"].split(".")[2]),
@@ -228,6 +262,7 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
             to_account=to.name,
             amount=amount.amount,
             status=status,
+            tx_hash=tx_hash,
             confirmations=0,
             block_num=op["block_num"],
             tx_created_at=(await Block(op["block_num"])).time(),
@@ -259,17 +294,60 @@ async def confirm_op(op: BitSharesOperationDTO) -> bool:
         confirmations_now = current_block_num - op.block_num
 
         if confirmations_now > op.confirmations:
-            log.info(
-                f"Seen new {confirmations_now - op.confirmations} confirmations in {op.op_id}"
-            )
             op.confirmations = confirmations_now
             change = True
+            log.info(
+                f"Op {op.op_id}: new confirmations! (currently {op.confirmations}/{BITSHARES_NEED_CONF})"
+            )
 
         if op.confirmations >= BITSHARES_NEED_CONF:
-            log.info(
-                f"Changing {op.op_id} status to {TxStatus.RECEIVED_AND_CONFIRMED.name}"
-            )
             op.status = TxStatus.RECEIVED_AND_CONFIRMED
             change = True
+            log.info(f"Op {op.op_id}: changing status to {op.status.name}")
 
     return change
+
+
+async def get_tx_hash_from_op(op: dict) -> str:
+    op_block = await Block(op["block_num"])
+    related_txs = []
+
+    for tx in op_block["transactions"]:
+
+        if len(tx["operations"]) > 1:
+            continue
+            # Gateway newer broadcast more than one operation in one transaction.
+            # At least, not in this implementation
+
+        for op_in_tx in tx["operations"]:
+
+            if op_in_tx[0] != 0:
+                continue
+            if op["op"][1]["amount"]["amount"] != op_in_tx[1]["amount"]["amount"]:
+                continue
+            if op["op"][1]["amount"]["asset_id"] != op_in_tx[1]["amount"]["asset_id"]:
+                continue
+            if op["op"][1]["from"] != op_in_tx[1]["from"]:
+                continue
+            if op["op"][1]["to"] != op_in_tx[1]["to"]:
+                continue
+            # TODO memo compare
+
+            # this is prevent bug in python-bitshares when Block['transaction'] from testnet returning with mainnet prefix "BTS"(should be "TEST")
+            tx["operations"][0][1]["prefix"] = gateway_cfg["core_asset"]
+
+            related_txs.append(Signed_Transaction(tx).id)
+
+    if len(related_txs) == 1:
+        return related_txs[0]
+
+    # Can not find transaction with op
+    elif len(related_txs) == 0:
+        raise TransactionNotFound(
+            message=f"Op {op['id']}: unable to find transaction that contains such operations in block {op['block_num']}"
+        )
+
+    else:
+        raise OperationsCollision(
+            message=f"Op {op['id']}: during confirm found {len(related_txs)} transactions: {[i for i in related_txs]}"
+        )

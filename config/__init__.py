@@ -33,7 +33,7 @@ except FileNotFoundError:
 
     gateway_cfg = {
         "core_asset": testnet_core_asset,
-        "gateway_prefix": testnet_core_asset,
+        "gateway_prefix": testnet_gateway_prefix,
         "gateway_distribute_asset": testnet_eth_asset,
         "account": testnet_gateway_account,
         "keys": {"active": testnet_gateway_active, "memo": testnet_gateway_memo},

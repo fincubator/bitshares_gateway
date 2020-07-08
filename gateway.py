@@ -214,8 +214,7 @@ class Gateway:
 
         log.info(
             f"\n"
-            f"     Run {gateway_cfg['gateway_prefix']}.{gateway_cfg['gateway_distribute_asset']} "
-            f"BitShares gateway\n"
+            f"     Run {gateway_cfg['gateway_distribute_asset']} BitShares gateway\n"
             f"     Distribution account: {self.bitshares_instance.config['default_account']}\n"
             f"     Connected to node: {self.bitshares_instance.rpc.url}\n"
             f"     Connected to database: {not self.db.closed}"
