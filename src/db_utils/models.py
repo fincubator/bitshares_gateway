@@ -6,7 +6,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import UUID
 
 # from migrations import metadata
-from dto import TxStatus, TxError, OrderType
+from src.dto import TxStatus, TxError, OrderType
 from config import sql_conn_url
 
 Base = declarative_base()

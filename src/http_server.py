@@ -1,6 +1,6 @@
 from aiohttp import web
 
-from utils import get_logger
+from src.utils import get_logger
 from config import http_config
 
 

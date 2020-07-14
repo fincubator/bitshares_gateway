@@ -39,11 +39,14 @@ class TxStatus(Enum):
 
 class TxError(Enum):
     NO_ERROR = 0
-    BAD_ASSET = 1
-    LESS_MIN = 2
-    GREATER_MAX = 3
-    NO_MEMO = 4
-    FLOOD_MEMO = 5
+    UNKNOWN_ERROR = 1
+    BAD_ASSET = 2
+    LESS_MIN = 3
+    GREATER_MAX = 4
+    NO_MEMO = 5
+    FLOOD_MEMO = 6
+    OP_COLLISION = 7
+    TX_HASH_NOT_FOUND = 8
 
 
 @dataclass
@@ -67,8 +70,3 @@ class BitSharesOperation(DataTransferClass):
     tx_expiration: int = None
 
     error: TxError = None
-
-    def as_model(self):
-        from db_utils.models import BitsharesOperation as Model
-
-        return Model(**self.__dict__)

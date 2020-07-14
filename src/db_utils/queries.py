@@ -3,9 +3,9 @@ from aiopg.sa import SAConnection as SAConn, Engine
 from aiopg.sa.result import RowProxy
 
 from sqlalchemy.sql import insert, delete, update, select
-from db_utils.models import GatewayWallet, BitsharesOperation
-from dto import OrderType, TxStatus
-from utils import get_logger, object_as_dict
+from src.db_utils.models import GatewayWallet, BitsharesOperation
+from src.dto import OrderType, TxStatus
+from src.utils import get_logger, object_as_dict
 
 from config import pg_config
 

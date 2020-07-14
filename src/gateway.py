@@ -1,12 +1,12 @@
 from getpass import getpass
 from rncryptor import DecryptionError
 
-from bitshares_utils import *
-from db_utils.queries import *
-from dto import BitSharesOperation as BitSharesOperationDTO
-from cryptor import get_wallet_keys, save_wallet_keys, encrypt, decrypt
-from utils import get_logger, rowproxy_to_dto
-from http_server import start_http_server
+from src.bitshares_utils import *
+from src.db_utils.queries import *
+from src.dto import BitSharesOperation as BitSharesOperationDTO
+from src.cryptor import get_wallet_keys, save_wallet_keys, encrypt, decrypt
+from src.utils import get_logger, rowproxy_to_dto
+from src.http_server import start_http_server
 
 from config import gateway_cfg
 
@@ -214,8 +214,7 @@ class Gateway:
 
         log.info(
             f"\n"
-            f"     Run {gateway_cfg['gateway_prefix']}.{gateway_cfg['gateway_distribute_asset']} "
-            f"BitShares gateway\n"
+            f"     Run {gateway_cfg['gateway_distribute_asset']} BitShares gateway\n"
             f"     Distribution account: {self.bitshares_instance.config['default_account']}\n"
             f"     Connected to node: {self.bitshares_instance.rpc.url}\n"
             f"     Connected to database: {not self.db.closed}"
