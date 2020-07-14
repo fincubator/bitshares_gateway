@@ -1,7 +1,7 @@
 import pytest
 
-from db_utils.queries import *
-from utils import rowproxy_to_dto
+from src.db_utils.queries import *
+from src.utils import rowproxy_to_dto
 
 from .fixtures import testnet_gateway_account_mock
 
@@ -100,7 +100,7 @@ async def test_add_operation():
 
 @pytest.mark.asyncio
 async def test_update_operation():
-    from dto import BitSharesOperation as BitSharesOperationDTO
+    from src.dto import BitSharesOperation as BitSharesOperationDTO
 
     async with (await get_test_engine()).acquire() as conn:
         operation = BitsharesOperation(

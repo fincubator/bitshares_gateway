@@ -1,6 +1,6 @@
 import pytest
 
-from utils import get_gw_settings
+from src.utils import get_gw_settings
 
 from .fixtures import test_control_center_url
 
