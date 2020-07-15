@@ -3,7 +3,7 @@ import os
 
 from rncryptor import DecryptionError
 
-from cryptor import encrypt, decrypt, get_wallet_keys, save_wallet_keys
+from src.cryptor import encrypt, decrypt, get_wallet_keys, save_wallet_keys
 from config import project_root_dir
 
 

@@ -26,6 +26,7 @@ docker-compose.yml
 # Unit test / coverage reports
 tests/
 .pytest_cache/
+.mypy_cache
 
 # Environments
 .env
