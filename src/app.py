@@ -7,12 +7,22 @@ import signal
 from rncryptor import DecryptionError
 
 from src.bitshares_utils import (
-    init_bitshares, get_last_op_num, get_current_block_num, validate_op, confirm_op,
-    wait_new_account_ops
+    init_bitshares,
+    get_last_op_num,
+    get_current_block_num,
+    validate_op,
+    confirm_op,
+    wait_new_account_ops,
 )
 from src.db_utils.queries import (
-    init_database, add_gateway_wallet, add_operation, get_gateway_wallet,
-    get_unconfirmed_operations, update_last_operation, update_operation, update_last_parsed_block
+    init_database,
+    add_gateway_wallet,
+    add_operation,
+    get_gateway_wallet,
+    get_unconfirmed_operations,
+    update_last_operation,
+    update_operation,
+    update_last_parsed_block,
 )
 from src.db_utils.models import BitsharesOperation, GatewayWallet
 from src.dto import BitSharesOperation as BitSharesOperationDTO
@@ -72,9 +82,7 @@ def unlock_wallet():
     if not enc_keys:
         log.info(f"{account_name} is new account. Let's add and encrypt keys\n")
         memo_key = getpass(f"Please Enter {account_name}'s active private key\n")
-        active_key = getpass(
-            f"Ok.\nPlease Enter {account_name}'s memo active key\n"
-        )
+        active_key = getpass(f"Ok.\nPlease Enter {account_name}'s memo active key\n")
         password = getpass(
             "Ok\nNow enter password to encrypt keys\n"
             "Warning! Currently there is NO WAY TO RECOVER your password!!! Please be careful!\n"
@@ -82,9 +90,7 @@ def unlock_wallet():
         password_confirm = getpass("Repeat the password\n")
         if password == password_confirm:
             save_wallet_keys(
-                account_name,
-                encrypt(active_key, password),
-                encrypt(memo_key, password),
+                account_name, encrypt(active_key, password), encrypt(memo_key, password)
             )
             log.info(
                 f"Successfully encrypted and stored in file config/.{account_name}.keys"
@@ -188,9 +194,7 @@ async def watch_account_history():
                     # Just refresh last account operations in database
                     await update_last_operation(
                         conn,
-                        account_name=bitshares_instance.config[
-                            "default_account"
-                        ],
+                        account_name=bitshares_instance.config["default_account"],
                         last_operation=op_id,
                     )
 
@@ -204,9 +208,7 @@ async def watch_unconfirmed_operations():
             unconfirmed_ops = await get_unconfirmed_operations(conn)
             for op in unconfirmed_ops:
 
-                op_dto = rowproxy_to_dto(
-                    op, BitsharesOperation, BitSharesOperationDTO
-                )
+                op_dto = rowproxy_to_dto(op, BitsharesOperation, BitSharesOperationDTO)
                 is_changed = await confirm_op(op_dto)
                 if is_changed:
                     updated_op = BitsharesOperation(**op_dto.__dict__)
@@ -289,11 +291,13 @@ loop.set_exception_handler(ex_handler)
 ctx = AppContext()
 
 db = loop.run_until_complete(init_database())
-bitshares_instance = loop.run_until_complete(init_bitshares(
+bitshares_instance = loop.run_until_complete(
+    init_bitshares(
         account=gateway_cfg["account"],
         keys=gateway_cfg["keys"],
         node=gateway_cfg["nodes"],
-    ))
+    )
+)
 
 ctx.add(db)
 
