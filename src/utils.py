@@ -4,10 +4,8 @@ import aiohttp
 from aiopg.sa.result import RowProxy
 from sqlalchemy import inspect
 
-from config import CONTROLCENTERURL
 
-
-async def get_gw_settings(gw, url=CONTROLCENTERURL):
+async def get_gw_settings(gw, url=""):
     """Fetch gateway settings from control_center. Control_center URL stored in config/const.py"""
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as resp:

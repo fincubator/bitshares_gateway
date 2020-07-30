@@ -11,17 +11,22 @@ from bitshares.aio.instance import (
     shared_bitshares_instance,
 )
 from bitsharesbase.signedtransactions import Signed_Transaction
-from graphenecommon.exceptions import BlockDoesNotExistsException
+from graphenecommon.exceptions import (
+    BlockDoesNotExistsException,
+    AccountDoesNotExistsException,
+)
 from grapheneapi.exceptions import NumRetriesReached
 
-from src.dto import (
+from src.gw_dto import (
     OrderType,
     TxStatus,
     TxError,
     BitSharesOperation as BitSharesOperationDTO,
+    Amount as DTOAmount,
 )
 from src.utils import get_logger
-from config import BITSHARES_BLOCK_TIME, BITSHARES_NEED_CONF, gateway_cfg
+
+from src.config import Config, BITSHARES_BLOCK_TIME, BITSHARES_NEED_CONF
 
 
 log = get_logger("BitSharesUtils")
@@ -43,7 +48,7 @@ class OperationsCollision(Exception):
 
 
 async def init_bitshares(
-    account: str = None, node: str or list = None, keys: list = None, loop=None
+    account: str = None, node: str or list = None, keys: list or dict = None, loop=None
 ) -> BitShares:
     """ Create bitshares aio.instance, append it to loop and set as shared """
     if not account:
@@ -72,13 +77,15 @@ async def broadcast_tx(tx: dict) -> dict:
     return tx_res
 
 
-async def asset_issue(symbol: str, amount: float, to: str, memo: str = None) -> dict:
+async def asset_issue(
+    symbol: str, amount: DTOAmount, to: str, memo: str = None
+) -> dict:
     asset: Asset = await Asset(symbol)
     asset.blockchain.nobroadcast = True
     return await asset.issue(amount=amount, to=to, memo=memo)
 
 
-async def asset_burn(amount: Amount or int or float, symbol: str = None) -> dict:
+async def asset_burn(amount: Amount or int or DTOAmount, symbol: str = None) -> dict:
     instance = shared_bitshares_instance()
     instance.nobroadcast = True
     if not isinstance(amount, Amount) and type(amount) in (int, float):
@@ -87,7 +94,7 @@ async def asset_burn(amount: Amount or int or float, symbol: str = None) -> dict
 
 
 async def asset_transfer(
-    to: str, amount: float, asset: str, memo: str = None, account: str = None
+    to: str, amount: DTOAmount, asset: str, memo: str = None, account: str = None
 ) -> dict:
     instance = shared_bitshares_instance()
     instance.nobroadcast = True
@@ -164,7 +171,9 @@ async def read_memo(memo_obj: dict) -> str:
         return memo_reader.decrypt(memo_obj)
 
 
-async def validate_op(op: dict) -> BitSharesOperationDTO:
+async def validate_op(op: dict, cfg: Config = None) -> BitSharesOperationDTO:
+    cfg = Config() if not cfg else cfg
+
     """Parse BitShares operation body from Account.history generator, check fields. Return DataTransferObject"""
     instance = shared_bitshares_instance()
 
@@ -194,7 +203,7 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
         status = TxStatus.RECEIVED_NOT_CONFIRMED
 
         # Validate asset
-        if asset.symbol != gateway_cfg["gateway_distribute_asset"]:
+        if asset.symbol != f"{cfg.gateway_prefix}.{cfg.gateway_distribute_asset}":
             error = TxError.BAD_ASSET
 
         # Validate account
@@ -208,31 +217,31 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
         # Validate amount for withdrawals
         if order_type == OrderType.WITHDRAWAL:
 
-            if amount < gateway_cfg["gateway_min_withdrawal"]:
+            if amount < cfg.min_withdrawal:
                 error = TxError.LESS_MIN
 
-            if amount > gateway_cfg["gateway_max_withdrawal"]:
+            if amount > cfg.max_withdrawal:
                 error = TxError.GREATER_MAX
 
             if not memo:
                 error = TxError.NO_MEMO
             else:
                 try:
-                    await validate_withdrawal_memo(memo)
+                    await validate_withdrawal_memo(memo, cfg)
                 except InvalidMemoMask:
                     error = TxError.FLOOD_MEMO
 
         # Validate amount for deposits
         if order_type == OrderType.DEPOSIT:
 
-            if amount < gateway_cfg["gateway_min_deposit"]:
+            if amount < cfg.min_deposit:
                 error = TxError.LESS_MIN
 
-            if amount > gateway_cfg["gateway_max_withdrawal"]:
+            if amount > cfg.max_withdrawal:
                 error = TxError.GREATER_MAX
 
         try:
-            tx_hash = await get_tx_hash_from_op(op)
+            tx_hash = await get_tx_hash_from_op(op, cfg)
         except OperationsCollision as ex:
             log.exception(ex)
             tx_hash = "Unknown"
@@ -272,14 +281,14 @@ async def validate_op(op: dict) -> BitSharesOperationDTO:
         return op_dto
 
 
-async def validate_withdrawal_memo(memo: str or dict) -> None:
+async def validate_withdrawal_memo(memo: str or dict, cfg: Config = None) -> None:
+    cfg = Config() if not cfg else cfg
     if isinstance(memo, dict):
         memo = await read_memo(memo)
 
     if (
         (len(memo.split(":")) != 2)
-        or memo.split(":")[0].upper()
-        != gateway_cfg["gateway_distribute_asset"].split(".")[1]
+        or memo.split(":")[0].upper() != cfg.gateway_distribute_asset
         or len(memo.split(":")[1]) == 0
     ):
         raise InvalidMemoMask(f"Flood memo: {memo}")
@@ -308,7 +317,8 @@ async def confirm_op(op: BitSharesOperationDTO) -> bool:
     return change
 
 
-async def get_tx_hash_from_op(op: dict) -> str:
+async def get_tx_hash_from_op(op: dict, cfg: Config = None) -> str:
+    cfg = Config() if not cfg else cfg
     op_block = await Block(op["block_num"])
     related_txs = []
 
@@ -333,8 +343,10 @@ async def get_tx_hash_from_op(op: dict) -> str:
                 continue
             # TODO memo compare
 
-            # this is prevent bug in python-bitshares when Block['transaction'] from testnet returning with mainnet prefix "BTS"(should be "TEST")
-            tx["operations"][0][1]["prefix"] = gateway_cfg["core_asset"]
+            """this is prevent bug in python-bitshares when Block['transaction'] from
+               testnet returning with mainnet prefix "BTS"(should be "TEST")
+            """
+            tx["operations"][0][1]["prefix"] = cfg.core_asset
 
             related_txs.append(Signed_Transaction(tx).id)
 
@@ -351,3 +363,13 @@ async def get_tx_hash_from_op(op: dict) -> str:
         raise OperationsCollision(
             message=f"Op {op['id']}: during confirm found {len(related_txs)} transactions: {[i for i in related_txs]}"
         )
+
+
+async def validate_bitshares_account(account: str) -> bool:
+    try:
+        await Account(account)
+        return True
+    except AccountDoesNotExistsException:
+        return False
+    except Exception as ex:
+        raise ex

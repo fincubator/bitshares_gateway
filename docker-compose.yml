@@ -25,6 +25,7 @@ services:
       && pipenv run python . "
     ports:
       - ${HTTP_PORT}:${HTTP_PORT}
+      - ${WS_PORT}:${WS_PORT}
     depends_on:
       - postgres
 

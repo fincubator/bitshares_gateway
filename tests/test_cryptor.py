@@ -4,7 +4,7 @@ import os
 from rncryptor import DecryptionError
 
 from src.cryptor import encrypt, decrypt, get_wallet_keys, save_wallet_keys
-from config import project_root_dir
+from src.config import project_root_dir
 
 
 def test_crypto_types():
@@ -53,4 +53,4 @@ def test_secret_file_write_and_read():
         else:
             raise
 
-    os.remove(f"{project_root_dir}/config/.{account_name}.keys")
+    os.remove(f"{project_root_dir}/.{account_name}.keys")

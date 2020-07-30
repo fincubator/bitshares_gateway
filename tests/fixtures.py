@@ -3,10 +3,6 @@ testnet_bitshares_nodes = ["wss://testnet.dex.trading/"]
 # Add this only for test_queries module to non-conflict run another tests
 testnet_gateway_account_mock = "some-account"
 
-testnet_gateway_account = "fincubator-gateway-test"
-testnet_gateway_active = "5JEEBPVnDwttRkbLzmFKmgoZ1ELxBMnjnEiX4JhvVfeDNQbX936"
-testnet_gateway_memo = "5KfyHL8gzAKiKz3wcc3c4EJgQi64nkuYZqAUN63QD5xxa2FogdW"
-
 testnet_user_account = "fincubator-user-test1"
 testnet_user_active = "5JZCdWTdAsHvxYquGScmuekUnEpvEsk6DpPhvbuw5KL64qeiNFc"
 testnet_user_memo = "5KF8Qh5gvKmw4XcB9TtLqG9uX8QcTGHBD8WZukQzHbfVY6ypTNd"
@@ -30,7 +26,7 @@ testnet_memo_dict = {
 
 test_control_center_url = ""
 
-test_gateway_min_deposit = 0.1
-test_gateway_min_withdrawal = 0.1
-test_gateway_max_deposit = 10
-test_gateway_max_withdrawal = 10
+test_min_deposit = 0.1
+test_min_withdrawal = 0.1
+test_max_deposit = 10
+test_max_withdrawal = 10

@@ -4,19 +4,29 @@ from aiopg.sa.result import RowProxy
 
 from sqlalchemy.sql import insert, delete, update, select
 from src.db_utils.models import GatewayWallet, BitsharesOperation
-from src.dto import OrderType, TxStatus
+from src.gw_dto import OrderType, TxStatus
 from src.utils import get_logger, object_as_dict
 
-from config import pg_config
+from src.config import Config
 
+# TODO Dependency inj
+cfg = Config()
 
 log = get_logger("Postgres")
 
 
-async def init_database(**kwargs) -> Engine:
+async def init_database(cfg: Config) -> Engine:
     """Async engine to execute clients requests"""
-    kwargs = pg_config if not kwargs else kwargs
-    engine = await aiopg.sa.create_engine(**kwargs)
+    cfg = Config if not cfg else cfg
+    engine = await aiopg.sa.create_engine(
+        **{
+            "host": cfg.db_host,
+            "port": cfg.db_port,
+            "user": cfg.db_user,
+            "password": cfg.db_password,
+            "database": cfg.db_database,
+        }
+    )
     return engine
 
 

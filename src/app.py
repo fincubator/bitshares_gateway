@@ -6,7 +6,7 @@ import signal
 
 from rncryptor import DecryptionError
 
-from src.bitshares_utils import (
+from src.blockchain.bitshares_utils import (
     init_bitshares,
     get_last_op_num,
     get_current_block_num,
@@ -25,53 +25,21 @@ from src.db_utils.queries import (
     update_last_parsed_block,
 )
 from src.db_utils.models import BitsharesOperation, GatewayWallet
-from src.dto import BitSharesOperation as BitSharesOperationDTO
+from src.gw_dto import BitSharesOperation as BitSharesOperationDTO
 from src.cryptor import get_wallet_keys, save_wallet_keys, encrypt, decrypt
 from src.utils import get_logger, rowproxy_to_dto
 from src.http_server import start_http_server
+from src.mock_ws_server import start_gateway_ws_server
 
-from config import gateway_cfg, BITSHARES_BLOCK_TIME
+from src.app_context_class import AppContext
+from src.config import BITSHARES_BLOCK_TIME
 
 
 log = get_logger("Gateway")
 
 
-class AppContext:
-    __slots__ = ("state", "Engine", "BitShares")
-    state: dict
-
-    def __init__(self):
-        self.state = {}
-
-    def __eq__(self, other: object) -> bool:
-        return self is other
-
-    def __getitem__(self, key: str) -> Any:
-        return self.state[key]
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        self.state[key] = value
-
-    def __delitem__(self, key: str) -> None:
-        del self.state[key]
-
-    def __len__(self) -> int:
-        return len(self.state)
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self.state)
-
-    def add(self, app):
-        app_tmp = weakref.ref(app)
-        self.state[app.__class__.__name__] = app_tmp
-
-    @property
-    def db(self):
-        return self.state["Engine"]
-
-
-def unlock_wallet():
-    account_name = gateway_cfg["account"]
+def unlock_wallet(ctx: AppContext):
+    account_name = ctx.cfg.account
     active_key = ""
     memo_key = ""
 
@@ -114,11 +82,11 @@ def unlock_wallet():
             except Exception as ex:
                 log.exception(ex)
 
-    gateway_cfg["keys"] = [active_key, memo_key]
+    ctx.cfg.keys = [active_key, memo_key]
     del password
 
 
-async def synchronize():
+async def synchronize(ctx: AppContext):
     """
     Before start, Gateway should synchronize distributing account's data with database.
     This function fetch last_operation and last_parsed_block from database.
@@ -134,22 +102,22 @@ async def synchronize():
     """
 
     async with ctx.db().acquire() as conn:
-        wallet = GatewayWallet(account_name=gateway_cfg["account"])
+        wallet = GatewayWallet(account_name=ctx.cfg.account)
         is_new = await add_gateway_wallet(conn, wallet)
         if is_new:
             log.info(
-                f"Account {gateway_cfg['account']} is new. Let's retrieve data from blockchain and"
+                f"Account {ctx.cfg.account} is new. Let's retrieve data from blockchain and"
                 f" record it in database!"
             )
 
-            last_op = await get_last_op_num(gateway_cfg["account"])
+            last_op = await get_last_op_num(ctx.cfg.account)
             last_block = await get_current_block_num()
 
-            await update_last_operation(conn, gateway_cfg["account"], last_op)
-            await update_last_parsed_block(conn, gateway_cfg["account"], last_block)
+            await update_last_operation(conn, ctx.cfg.account, last_op)
+            await update_last_parsed_block(conn, ctx.cfg.account, last_block)
 
-        log.info(f"Retrieve account {gateway_cfg['account']} data from database")
-        gateway_wallet = await get_gateway_wallet(conn, gateway_cfg["account"])
+        log.info(f"Retrieve account {ctx.cfg.account} data from database")
+        gateway_wallet = await get_gateway_wallet(conn, ctx.cfg.account)
 
         log.info(
             f"Start from operation {gateway_wallet.last_operation}, "
@@ -158,18 +126,20 @@ async def synchronize():
         return True
 
 
-async def watch_account_history():
+async def watch_account_history(ctx: AppContext):
     """
     BitShares Gateway account monitoring
 
     All new operations will be validate and insert in database. Booker will be notified about it.
     """
 
+    await synchronize(ctx)
+
     log.info(
         f"Watching {bitshares_instance.config['default_account']} for new operations started"
     )
     async with ctx.db().acquire() as conn:
-        gateway_wallet = await get_gateway_wallet(conn, gateway_cfg["account"])
+        gateway_wallet = await get_gateway_wallet(conn, ctx.cfg.account)
 
     last_op = gateway_wallet.last_operation
 
@@ -182,7 +152,7 @@ async def watch_account_history():
             op_id = op["id"].split(".")[2]
             last_op = op_id
 
-            op_result = await validate_op(op)
+            op_result = await validate_op(op, cfg=ctx.cfg)
             async with ctx.db().acquire() as conn:
 
                 if op_result:
@@ -199,7 +169,7 @@ async def watch_account_history():
                     )
 
 
-async def watch_unconfirmed_operations():
+async def watch_unconfirmed_operations(ctx: AppContext):
     """Grep unconfirmed transactions from base and try to confirm it"""
     log.info(f"Watching unconfirmed operations")
     while True:
@@ -217,22 +187,22 @@ async def watch_unconfirmed_operations():
         await asyncio.sleep(BITSHARES_BLOCK_TIME)
 
 
-async def watch_banker():
+async def watch_banker(ctx: AppContext):
     """Await Banker"""
     log.info(f"Await for Booker commands")
     while True:
         await asyncio.sleep(1)
 
 
-async def watch_blocks():
+async def watch_blocks(ctx: AppContext):
     log.info(f"Parsing blocks...")
     while True:
         await asyncio.sleep(1)
         # await parse_blocks(start_block_num=gateway_wallet.last_parsed_block)
 
 
-async def listen_http():
-    await start_http_server()
+async def listen_http(ctx: AppContext):
+    await start_http_server(ctx.cfg.http_host, ctx.cfg.http_port)
     log.info("Listen HTTP...")
 
 
@@ -261,7 +231,7 @@ def ex_handler(loop, ex_context):
 
     if coro_to_restart:
         log.info(f"Trying to restart {coro_to_restart.__name__} coroutine")
-        loop.create_task(coro_to_restart())
+        loop.create_task(coro_to_restart(context_instance))
 
 
 async def shutdown(loop, signal=None):
@@ -288,36 +258,38 @@ for s in signals:
     )
 loop.set_exception_handler(ex_handler)
 
-ctx = AppContext()
+context_instance = AppContext()
 
-db = loop.run_until_complete(init_database())
+db = loop.run_until_complete(init_database(context_instance.cfg))
 bitshares_instance = loop.run_until_complete(
     init_bitshares(
-        account=gateway_cfg["account"],
-        keys=gateway_cfg["keys"],
-        node=gateway_cfg["nodes"],
+        account=context_instance.cfg.account,
+        keys=context_instance.cfg.keys,
+        node=context_instance.cfg.nodes,
     )
 )
 
-ctx.add(db)
+context_instance.add(db)
 
-if not gateway_cfg.get("keys"):
-    unlock_wallet()
+
+if not context_instance.cfg.is_test_env:
+    unlock_wallet(context_instance)
 
 log.info(
     f"\n"
-    f"     Run {gateway_cfg['gateway_distribute_asset']} BitShares gateway\n"
+    f"     Run {context_instance.cfg.gateway_distribute_asset} BitShares gateway\n"
     f"     Distribution account: {bitshares_instance.config['default_account']}\n"
-    f"     Connected to node: {bitshares_instance.rpc.url}\n"
+    f"     Connected to BitShares API node: {bitshares_instance.rpc.url}\n"
     f"     Connected to database: {not db.closed}"
 )
 
 try:
-    loop.create_task(watch_banker())
-    loop.create_task(watch_account_history())
-    loop.create_task(watch_unconfirmed_operations())
-    loop.create_task(watch_blocks())
-    loop.create_task(listen_http())
+    loop.create_task(start_gateway_ws_server(context_instance))
+    loop.create_task(watch_account_history(context_instance))
+    loop.create_task(watch_banker(context_instance))
+    loop.create_task(watch_unconfirmed_operations(context_instance))
+    loop.create_task(watch_blocks(context_instance))
+    loop.create_task(listen_http(context_instance))
 
     loop.run_forever()
 finally:
