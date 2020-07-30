@@ -8,7 +8,9 @@ from alembic import context
 import sys, os
 
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+)
 
 from booker.db.models import Base
 
@@ -25,19 +27,17 @@ fileConfig(config.config_file_name)
 section = config.config_ini_section
 
 db_environment_keys = {
-    'DB_DRIVER',
-    'DB_HOST',
-    'DB_PORT',
-    'DB_USER',
-    'DB_PASSWORD',
-    'DB_DATABASE'
+    "DB_DRIVER",
+    "DB_HOST",
+    "DB_PORT",
+    "DB_USER",
+    "DB_PASSWORD",
+    "DB_DATABASE",
 }
 
 for db_environment_key in db_environment_keys:
     config.set_section_option(
-        section,
-        db_environment_key,
-        os.environ.get(db_environment_key)
+        section, db_environment_key, os.environ.get(db_environment_key)
     )
 
 # add your model's MetaData object here
@@ -90,9 +90,7 @@ def run_migrations_online():
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

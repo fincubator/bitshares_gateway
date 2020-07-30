@@ -11,21 +11,16 @@ class ZMQJSONRPCAPIsClient(JSONRPCAPIsClient):
     stream_constructor: Callable[[], Awaitable[ZMQStream]]
     stream: Optional[ZMQStream] = None
 
-
-    def __init__(
-        self,
-        stream_constructor: Callable[[], Awaitable[ZMQStream]]
-    ) -> None:
+    def __init__(self, stream_constructor: Callable[[], Awaitable[ZMQStream]]) -> None:
         super().__init__()
 
         self.stream_constructor = stream_constructor
-
 
     async def _message_send_parent_transport_1(self, request: str) -> str:
         if self.stream is None:
             self.stream = await self.stream_constructor()
 
-        data_request = [request.encode('ascii')]
+        data_request = [request.encode("ascii")]
 
         self.stream.write(data_request)
 
@@ -38,15 +33,13 @@ class ZMQJSONRPCAPIsClient(JSONRPCAPIsClient):
 class ZMQJSONRPCAPIsServer(JSONRPCAPIsServer):
     stream: ZMQStream
 
-
     def __init__(self, stream: ZMQStream) -> None:
         super().__init__()
 
         self.stream = stream
 
-
     async def poll(self) -> None:
-        logging.info('ZeroMQ RPC server has started.')
+        logging.info("ZeroMQ RPC server has started.")
 
         while True:
             try:
@@ -62,7 +55,7 @@ class ZMQJSONRPCAPIsServer(JSONRPCAPIsServer):
                 try:
                     request = data_request[0]
                     response = await self.message_dispatch(request)
-                    data_response = [response.encode('ascii')]
+                    data_response = [response.encode("ascii")]
                 except asyncio.CancelledError:
                     raise
                 except BaseException as exception:
@@ -79,10 +72,10 @@ class ZMQJSONRPCAPIsServer(JSONRPCAPIsServer):
 
                     raise exception
             except asyncio.CancelledError:
-                logging.debug('ZeroMQ RPC server is stopping.')
+                logging.debug("ZeroMQ RPC server is stopping.")
 
                 self.stream.close()
 
-                logging.info('ZeroMQ RPC server has stopped.')
+                logging.info("ZeroMQ RPC server has stopped.")
 
                 raise

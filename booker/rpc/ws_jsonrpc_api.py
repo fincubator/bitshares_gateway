@@ -4,7 +4,7 @@ import logging
 
 from aiohttp import (
     ClientWebSocketResponse as HTTPClientWebSocketResponse,
-    WSCloseCode as HTTPWSCloseCode
+    WSCloseCode as HTTPWSCloseCode,
 )
 from aiohttp.web import WebSocketResponse as HTTPWebSocketResponse
 
@@ -15,15 +15,12 @@ class WSJSONRPCAPIsClient(JSONRPCAPIsClient):
     stream_constructor: Callable[[], Awaitable[HTTPClientWebSocketResponse]]
     stream: Optional[HTTPClientWebSocketResponse] = None
 
-
     def __init__(
-        self,
-        stream_constructor: Callable[[], Awaitable[HTTPClientWebSocketResponse]]
+        self, stream_constructor: Callable[[], Awaitable[HTTPClientWebSocketResponse]]
     ) -> None:
         super().__init__()
 
         self.stream_constructor = stream_constructor
-
 
     async def _message_send_parent_transport_1(self, request: str) -> str:
         if self.stream is None:
@@ -40,13 +37,11 @@ class WSJSONRPCAPIsServer(JSONRPCAPIsServer):
     tasks: AbstractSet[Awaitable[bool]]
     new_stream: asyncio.Event
 
-
     def __init__(self) -> None:
         super().__init__()
 
         self.tasks = {*()}
         self.new_stream = asyncio.Event()
-
 
     def add_stream(self, stream: HTTPWebSocketResponse) -> Awaitable[None]:
         stream_poller = asyncio.create_task(self.poll_stream(stream))
@@ -55,7 +50,6 @@ class WSJSONRPCAPIsServer(JSONRPCAPIsServer):
         self.new_stream.set()
 
         return stream_poller
-
 
     async def poll_stream(self, ws: HTTPWebSocketResponse) -> None:
         while True:
@@ -87,17 +81,15 @@ class WSJSONRPCAPIsServer(JSONRPCAPIsServer):
 
                     raise exception
             except asyncio.CancelledError:
-                logging.debug('WebSocket RPC server is stopping.')
+                logging.debug("WebSocket RPC server is stopping.")
 
                 await ws.close(
-                    code=HTTPWSCloseCode.GOING_AWAY,
-                    message='Connection shutdown'
+                    code=HTTPWSCloseCode.GOING_AWAY, message="Connection shutdown"
                 )
 
-                logging.info('WebSocket RPC server has stopped.')
+                logging.info("WebSocket RPC server has stopped.")
 
                 raise
-
 
     async def poll(self) -> None:
         self.new_stream.clear()
@@ -105,13 +97,12 @@ class WSJSONRPCAPIsServer(JSONRPCAPIsServer):
         new_stream = self.new_stream.wait()
         self.tasks |= {asyncio.create_task(new_stream)}
 
-        logging.info('WebSocket RPC server has started.')
+        logging.info("WebSocket RPC server has started.")
 
         while True:
             tasks, self.tasks = self.tasks, {*()}
             done, pending = await asyncio.wait(
-                tasks,
-                return_when=asyncio.FIRST_COMPLETED
+                tasks, return_when=asyncio.FIRST_COMPLETED
             )
 
             self.tasks |= pending

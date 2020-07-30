@@ -11,7 +11,7 @@ from booker.gateway.dto import (
     NewInOrderRequest,
     NewInTxOrder,
     NewOutTxOrder,
-    UpdateTxOrder
+    UpdateTxOrder,
 )
 
 
@@ -19,57 +19,40 @@ class AbstractBookerGatewayOrderAPI(ABC):
     @api_method
     @abstractmethod
     async def new_in_order_request(
-        self,
-        args: NewInOrderRequest
+        self, args: NewInOrderRequest
     ) -> APIStream[None, None]:
         """Create a request to create new inbound order without order_id
         identifier.
         """
         yield None
 
-
     @api_method
     @abstractmethod
-    async def new_in_tx_order(
-        self,
-        args: NewInTxOrder
-    ) -> APIStream[None, None]:
+    async def new_in_tx_order(self, args: NewInTxOrder) -> APIStream[None, None]:
         """Creates a new inbound transaction in the Booker database and binds it
         to the order with the order_id identifier.
         """
         yield None
 
-
     @api_method
     @abstractmethod
-    async def update_in_tx_order(
-        self,
-        args: UpdateTxOrder
-    ) -> APIStream[None, None]:
+    async def update_in_tx_order(self, args: UpdateTxOrder) -> APIStream[None, None]:
         """Updates a inbound transaction in the Booker database that is bound to
         the order with the order_id identifier.
         """
         yield None
 
-
     @api_method
     @abstractmethod
-    async def new_out_tx_order(
-        self,
-        args: NewOutTxOrder
-    ) -> APIStream[None, None]:
+    async def new_out_tx_order(self, args: NewOutTxOrder) -> APIStream[None, None]:
         """Creates a new outbound transaction in the Booker database and binds
         it to the order with the order_id identifier.
         """
         yield None
 
-
     @api_method
     @abstractmethod
-    async def update_out_tx_order(
-        self,
-        args: UpdateTxOrder
-    ) -> APIStream[None, None]:
+    async def update_out_tx_order(self, args: UpdateTxOrder) -> APIStream[None, None]:
         """Updates a outbound transaction in the Booker database that is bound
         to the order with the order_id identifier.
         """
@@ -85,20 +68,16 @@ class AbstractGatewayBookerOrderAPI(ABC):
     @api_method
     @abstractmethod
     async def validate_address(
-        self,
-        args: ValidateAddress
+        self, args: ValidateAddress
     ) -> APIStream[ValidatedAddress, None]:
         yield None
-
 
     @api_method
     @abstractmethod
     async def get_deposit_address(
-        self,
-        args: GetDepositAddress
+        self, args: GetDepositAddress
     ) -> APIStream[DepositAddress, None]:
         yield None
-
 
     @api_method
     @abstractmethod
@@ -106,7 +85,6 @@ class AbstractGatewayBookerOrderAPI(ABC):
         """Create a new inbound order with order_id identifier.
         """
         yield None
-
 
     @api_method
     @abstractmethod

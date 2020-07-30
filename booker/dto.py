@@ -17,7 +17,6 @@ class DTOInvalidType(Exception):
 class DataTransferClass:
     Schema: ClassVar[Type[MarshmallowSchema]] = MarshmallowSchema
 
-
     def update(self, dto: DataTransferClass) -> None:
         dto_dict = dataclasses.asdict(dto)
 

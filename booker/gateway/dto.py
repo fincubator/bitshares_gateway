@@ -42,6 +42,7 @@ class DepositAddress(DataTransferClass):
 class NewInOrder(DataTransferClass):
     """Create a new inbound order with order_id identifier.
     """
+
     order_id: UUID
     order_type: OrderType
     in_tx_coin: str
@@ -55,6 +56,7 @@ class NewInOrder(DataTransferClass):
 class NewOutOrder(DataTransferClass):
     """Create a new outbound order with order_id identifier.
     """
+
     order_id: UUID
     order_type: OrderType
     in_tx_coin: str
@@ -78,6 +80,7 @@ class NewOutOrder(DataTransferClass):
 class NewInOrderRequest(DataTransferClass):
     """Create a request to create new inbound order without order_id identifier.
     """
+
     order_type: OrderType
     in_tx_coin: str
     in_tx_to: str
@@ -91,6 +94,7 @@ class NewInTxOrder(DataTransferClass):
     """Creates a new inbound transaction in the Booker database and binds it to
     the order with the order_id identifier.
     """
+
     order_id: UUID
     tx_hash: str
     """A transaction identifier, simple or composite, consisting of a
@@ -111,6 +115,7 @@ class NewOutTxOrder(DataTransferClass):
     Creates a new outbound transaction in the Booker database and binds it to
     the order with the order_id identifier.
     """
+
     order_id: UUID
     tx_hash: str
     """A transaction identifier, simple or composite, consisting of a
@@ -129,6 +134,7 @@ class UpdateTxOrder(DataTransferClass):
     """Updates a transaction in the Booker database that is bound to the order
     with the order_id identifier.
     """
+
     order_id: UUID
     tx_error: TxError
     tx_confirmations: int

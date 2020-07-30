@@ -4,9 +4,7 @@ from uuid import UUID, uuid4
 import logging
 
 import marshmallow
-from marshmallow.exceptions import (
-    ValidationError as MarshmallowSchemaValidationError
-)
+from marshmallow.exceptions import ValidationError as MarshmallowSchemaValidationError
 from marshmallow_dataclass import dataclass
 
 from booker.dto import DTOInvalidType, DataTransferClass
@@ -16,7 +14,7 @@ from booker.rpc.api import (
     APIUnknownError,
     APIUnknownResult,
     APIsClient,
-    APIsServer
+    APIsServer,
 )
 
 
@@ -88,12 +86,8 @@ class JSONRPCAPIsClient(APIsClient):
     async def _message_send_parent_transport_1(self, request: str) -> str:
         ...
 
-
     async def _message_send_parent_transport_0(
-        self,
-        method: str,
-        coroutine_id: UUID,
-        params: Optional[Any] = None
+        self, method: str, coroutine_id: UUID, params: Optional[Any] = None
     ) -> Optional[Any]:
         try:
             if params is None:
@@ -102,30 +96,25 @@ class JSONRPCAPIsClient(APIsClient):
             internal_params_schema = JSONRPCRequestInternalParams.Schema()
             request_schema = JSONRPCRequest.Schema()
             response_schema = JSONRPCResponse.Schema()
-            internal_params = JSONRPCRequestInternalParams(
-                _coroutine_id=coroutine_id
-            )
+            internal_params = JSONRPCRequestInternalParams(_coroutine_id=coroutine_id)
             internal_params = internal_params_schema.dump(internal_params)
 
             params.update(internal_params)
 
             request = JSONRPCRequest(
-                jsonrpc='2.0',
-                method=method,
-                id=uuid4(),
-                params=params
+                jsonrpc="2.0", method=method, id=uuid4(), params=params
             )
 
-            logging.debug(f'client: request from client: {request}')
+            logging.debug(f"client: request from client: {request}")
 
             request = request_schema.dumps(request)
             response = await self._message_send_parent_transport_1(request)
             response = response_schema.loads(response)
 
-            logging.debug(f'client: response from server: {response}')
+            logging.debug(f"client: response from server: {response}")
 
             if response.result is not None and response.error is not None:
-                raise JSONRPCAPIResultAndError('Result and error are both set.')
+                raise JSONRPCAPIResultAndError("Result and error are both set.")
 
             if response.error is not None:
                 error = response.error
@@ -141,17 +130,13 @@ class JSONRPCAPIsClient(APIsClient):
                 elif error.code == -32603:
                     raise JSONRPCAPIInternalError(error.message, error.data)
                 elif error.code >= -32099 and error.code <= -32000:
-                    raise JSONRPCAPIServerError(
-                        error.code,
-                        error.message,
-                        error.data
-                    )
+                    raise JSONRPCAPIServerError(error.code, error.message, error.data)
 
             return response.result
         except MarshmallowSchemaValidationError as exception:
             logging.debug(exception)
 
-            raise DTOInvalidType(f'Invalid payload type: {exception}')
+            raise DTOInvalidType(f"Invalid payload type: {exception}")
 
 
 class JSONRPCAPIsServer(APIsServer):
@@ -164,33 +149,30 @@ class JSONRPCAPIsServer(APIsServer):
             try:
                 request = request_schema.loads(request)
 
-                logging.debug(f'server: request from client: {request}')
+                logging.debug(f"server: request from client: {request}")
 
                 internal_params = internal_params_schema.load(
-                    request.params,
-                    unknown=marshmallow.EXCLUDE
+                    request.params, unknown=marshmallow.EXCLUDE
                 )
             except MarshmallowSchemaValidationError as exception:
                 logging.debug(exception)
 
                 response = JSONRPCResponse(
-                    jsonrpc='2.0',
+                    jsonrpc="2.0",
                     result=None,
                     error=JSONRPCError(
-                        code=-32700,
-                        message='Parse error',
-                        data=exception.args
+                        code=-32700, message="Parse error", data=exception.args
                     ),
-                    id=request.id
+                    id=request.id,
                 )
 
-                logging.debug(f'server: response from server: {response}')
+                logging.debug(f"server: response from server: {response}")
 
                 response = response_schema.dumps(response)
 
                 return response
 
-            del request.params['_coroutine_id']
+            del request.params["_coroutine_id"]
 
             if not request.params:
                 request.params = None
@@ -201,66 +183,56 @@ class JSONRPCAPIsServer(APIsServer):
             try:
                 if request.params is None:
                     result = await super().message_dispatch(
-                        request.method,
-                        internal_params._coroutine_id
+                        request.method, internal_params._coroutine_id
                     )
                 else:
                     result = await super().message_dispatch(
-                        request.method,
-                        internal_params._coroutine_id,
-                        request.params
+                        request.method, internal_params._coroutine_id, request.params
                     )
 
                 response = JSONRPCResponse(
-                    jsonrpc='2.0',
-                    result=result,
-                    error=None,
-                    id=request.id
+                    jsonrpc="2.0", result=result, error=None, id=request.id
                 )
             except APIMethodNotFound as exception:
                 logging.debug(exception)
 
                 response = JSONRPCResponse(
-                    jsonrpc='2.0',
+                    jsonrpc="2.0",
                     result=None,
                     error=JSONRPCError(
-                        code=-32601,
-                        message='Method not found',
-                        data=exception.args
+                        code=-32601, message="Method not found", data=exception.args
                     ),
-                    id=request.id
+                    id=request.id,
                 )
-            except (DTOInvalidType,
-                    APIUnknownOk,
-                    APIUnknownError,
-                    APIUnknownResult) as exception:
+            except (
+                DTOInvalidType,
+                APIUnknownOk,
+                APIUnknownError,
+                APIUnknownResult,
+            ) as exception:
                 logging.debug(exception)
 
                 response = JSONRPCResponse(
-                    jsonrpc='2.0',
+                    jsonrpc="2.0",
                     result=None,
                     error=JSONRPCError(
-                        code=-32602,
-                        message='Invalid params',
-                        data=exception.args
+                        code=-32602, message="Invalid params", data=exception.args
                     ),
-                    id=request.id
+                    id=request.id,
                 )
             except BaseException as exception:
                 logging.debug(exception)
 
                 response = JSONRPCResponse(
-                    jsonrpc='2.0',
+                    jsonrpc="2.0",
                     result=None,
                     error=JSONRPCError(
-                        code=-32603,
-                        message='Internal error',
-                        data=exception.args
+                        code=-32603, message="Internal error", data=exception.args
                     ),
-                    id=request.id
+                    id=request.id,
                 )
 
-            logging.debug(f'server: response from server: {response}')
+            logging.debug(f"server: response from server: {response}")
 
             response = response_schema.dumps(response)
 
@@ -269,4 +241,4 @@ class JSONRPCAPIsServer(APIsServer):
         except MarshmallowSchemaValidationError as exception:
             logging.debug(exception)
 
-            raise DTOInvalidType(f'Invalid payload type: {exception}')
+            raise DTOInvalidType(f"Invalid payload type: {exception}")
