@@ -991,7 +991,9 @@ class MockBTSGatewayBookerOrderAPIServer(GatewayBookerOrderAPIServer):
                 raise ValueError("Unknown order request type")
 
 
-def using_server(server: WSJSONRPCAPIsServer) -> Callable[[Request], WebSocketResponse]:
+def _using_server(
+    server: WSJSONRPCAPIsServer,
+) -> Callable[[Request], WebSocketResponse]:
     async def handler(request: Request) -> WebSocketResponse:
         stream = WebSocketResponse()
 
@@ -1007,13 +1009,13 @@ def using_server(server: WSJSONRPCAPIsServer) -> Callable[[Request], WebSocketRe
 
 
 @pytest.mark.asyncio
-async def test_booker_api_integration() -> None:
+async def test_validate_address() -> None:
     apis_server = WSJSONRPCAPIsServer()
     server_task = asyncio.create_task(apis_server.poll())
 
     app = Application()
 
-    app.add_routes([web.get("/", using_server(apis_server))])
+    app.add_routes([web.get("/", _using_server(apis_server))])
 
     server = TestServer(app)
 
@@ -1054,5 +1056,54 @@ async def test_booker_api_integration() -> None:
     bts_validated_address = await bts_validate_address.asend(None)
 
     assert bts_validated_address.valid == True
+
+    server_task.cancel()
+
+
+@pytest.mark.asyncio
+async def test_new_out_order() -> None:
+    apis_server = WSJSONRPCAPIsServer()
+    server_task = asyncio.create_task(apis_server.poll())
+
+    app = Application()
+
+    app.add_routes([web.get("/", _using_server(apis_server))])
+
+    server = TestServer(app)
+
+    await server.start_server()
+
+    async def bts_booker_client_ws_stream_constructor() -> ClientWebSocketResponse:
+        http_client = TestClient(server)
+        client_ws_stream = await http_client.ws_connect("/")
+
+        return client_ws_stream
+
+    bts_booker_apis_client = WSJSONRPCAPIsClient(
+        stream_constructor=bts_booker_client_ws_stream_constructor
+    )
+    bts_booker_client = MockBookerGatewayOrderAPIClient(
+        apis_client=bts_booker_apis_client
+    )
+    bts_server = MockBTSGatewayBookerOrderAPIServer(
+        booker=bts_booker_client, order_requests=asyncio.Queue()
+    )
+
+    apis_server.api_register(bts_server)
+
+    async def bts_gateway_client_ws_stream_constructor() -> ClientWebSocketResponse:
+        http_client = TestClient(server)
+        client_ws_stream = await http_client.ws_connect("/")
+
+        return client_ws_stream
+
+    bts_apis_client = WSJSONRPCAPIsClient(
+        stream_constructor=bts_gateway_client_ws_stream_constructor
+    )
+    bts_gateway_client = MockBTSGatewayBookerOrderAPIClient(apis_client=bts_apis_client)
+
+    new_out_order = bts_gateway_client.new_in_order(new_deposit_out_order)
+    processed = await new_out_order.asend(None)
+    print(processed)
 
     server_task.cancel()

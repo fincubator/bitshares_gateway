@@ -3,13 +3,14 @@ from aiohttp import web
 from src.utils import get_logger
 
 
-log = get_logger("http_server")
+log = get_logger("HTTP Server")
 
 routes = web.RouteTableDef()
 
 
 @routes.get("/")
 async def is_alive(request):
+    log.info(f"Received is_alive request {request.remote}")
     return web.Response(text="Ok")
 
 

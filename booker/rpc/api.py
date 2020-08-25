@@ -12,12 +12,15 @@ from typing import (
 from abc import ABC, abstractmethod
 from uuid import UUID, uuid4
 from builtins import *
-import logging
+from src.utils import get_logger
 
 from marshmallow.exceptions import ValidationError as MarshmallowSchemaValidationError
 from marshmallow_dataclass import dataclass
 
 from booker.dto import DTOInvalidType, DataTransferClass
+
+
+log = get_logger("BookerRPCAPI")
 
 
 RAPIStream = TypeVar("RAPIStream")
@@ -170,7 +173,7 @@ class APIClient(ABC):
                 try:
                     ok_send = yield ok_result
                 except BaseException as exception:
-                    logging.debug(exception)
+                    log.debug(exception)
 
                     error_send_name = type(exception).__name__
                     error_send = APIError(name=error_send_name, error=exception.args)
@@ -197,7 +200,7 @@ class APIClient(ABC):
                 send = APIResult(name="ok", ok_or_error=ok_send)
                 send = result_schema.dump(send)
         except MarshmallowSchemaValidationError as exception:
-            logging.debug(exception)
+            log.debug(exception)
 
             raise DTOInvalidType(f"Invalid payload type: {exception}")
 
@@ -306,11 +309,11 @@ def api_server(api_def: Type[object]) -> Type[object]:
                             else:
                                 ok_result = await coroutine.asend(ok_send)
                         except APIMethodNotFound as exception:
-                            logging.debug(exception)
+                            log.debug(exception)
 
                             raise exception
                         except BaseException as exception:
-                            logging.debug(exception)
+                            log.debug(exception)
 
                             error_result_name = type(exception).__name__
                             error_result = APIError(
@@ -389,7 +392,7 @@ def api_server(api_def: Type[object]) -> Type[object]:
                         else:
                             ok_result = await coroutine.asend(ok_send)
                     except BaseException as exception:
-                        logging.debug(exception)
+                        log.debug(exception)
 
                         error_result_name = type(exception).__name__
                         error_result = APIError(
@@ -445,7 +448,7 @@ def api_server(api_def: Type[object]) -> Type[object]:
                         error_send = exception_class(*error_send.error)
                         send_exception = True
             except MarshmallowSchemaValidationError as exception:
-                logging.debug(exception)
+                log.debug(exception)
 
                 raise DTOInvalidType(f"Invalid payload type: {exception}")
 

@@ -1,10 +1,13 @@
 from typing import Callable, Awaitable, Optional
 import asyncio
-import logging
+from src.utils import get_logger
 
 from aiozmq import ZmqStream as ZMQStream
 
 from booker.rpc.jsonrpc_api import JSONRPCAPIsClient, JSONRPCAPIsServer
+
+
+log = get_logger("BookerZMQJSONRPCApi")
 
 
 class ZMQJSONRPCAPIsClient(JSONRPCAPIsClient):
@@ -39,7 +42,7 @@ class ZMQJSONRPCAPIsServer(JSONRPCAPIsServer):
         self.stream = stream
 
     async def poll(self) -> None:
-        logging.info("ZeroMQ RPC server has started.")
+        log.info("ZeroMQ RPC server has started.")
 
         while True:
             try:
@@ -48,7 +51,7 @@ class ZMQJSONRPCAPIsServer(JSONRPCAPIsServer):
                 except asyncio.CancelledError:
                     raise
                 except BaseException as exception:
-                    logging.exception(exception)
+                    log.exception(exception)
 
                     raise exception
 
@@ -59,7 +62,7 @@ class ZMQJSONRPCAPIsServer(JSONRPCAPIsServer):
                 except asyncio.CancelledError:
                     raise
                 except BaseException as exception:
-                    logging.exception(exception)
+                    log.exception(exception)
 
                     continue
 
@@ -68,14 +71,14 @@ class ZMQJSONRPCAPIsServer(JSONRPCAPIsServer):
                 except asyncio.CancelledError:
                     raise
                 except BaseException as exception:
-                    logging.exception(exception)
+                    log.exception(exception)
 
                     raise exception
             except asyncio.CancelledError:
-                logging.debug("ZeroMQ RPC server is stopping.")
+                log.debug("ZeroMQ RPC server is stopping.")
 
                 self.stream.close()
 
-                logging.info("ZeroMQ RPC server has stopped.")
+                log.info("ZeroMQ RPC server has stopped.")
 
                 raise

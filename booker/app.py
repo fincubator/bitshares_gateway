@@ -1,13 +1,16 @@
 from typing import Optional, AbstractSet, Mapping
 
 import asyncio
-import logging
+from src.utils import get_logger
 
 from aiopg.sa import Engine as DBEngine, create_engine as create_db_engine
-from aiohttp.web import Application as HTTPApp
+from aiohttp.web import Application as HTTPApp, RouteTableDef as HTTPRouteTableDef
 
 from booker.config import Config
 from booker.rpc.gateway.api import AbstractGatewayBookerOrderAPIClient
+
+
+log = get_logger("BookerApp")
 
 
 class AppContext:
@@ -42,7 +45,7 @@ class AppContext:
         return gateway_clients
 
     async def run(self) -> None:
-        from booker.http.handlers import handlers as http_handlers
+        from booker.http.handlers import construct_handlers as construct_http_handlers
         from booker.http.server import start_server as start_http_server
         from booker.rpc.gateway.handlers import BookerGatewayOrderAPIServer
         from booker.rpc.gateway.client import GatewayBookerOrderAPIClient
@@ -58,7 +61,7 @@ class AppContext:
         )
         from booker.gateway.server import start_server as start_process_orders_server
 
-        logging.debug("The database connection is opening.")
+        log.debug("The database connection is opening.")
 
         self.db_engine = await create_db_engine(
             host=self.config.db_host,
@@ -68,7 +71,7 @@ class AppContext:
             database=self.config.db_database,
         )
 
-        logging.info("The database connection has opened.")
+        log.info("The database connection has opened.")
 
         rpc_clients = {
             "ETH": GatewayBookerOrderAPIClient,
@@ -84,6 +87,10 @@ class AppContext:
             start_ws_jsonrpc_server(self, rpc_handlers),
             start_zmq_jsonrpc_server(self, rpc_handlers),
         )
+
+        http_handlers = HTTPRouteTableDef()
+
+        construct_http_handlers(self, http_handlers)
         await start_http_server(self, http_handlers)
         await start_process_orders_server(self)
 
@@ -100,11 +107,11 @@ class AppContext:
 
             await asyncio.wait(self.tasks)
 
-            logging.debug("The database connection is closing.")
+            log.debug("The database connection is closing.")
 
             self.db_engine.close()
             await self.db_engine.wait_closed()
 
-            logging.info("The database connection has closed.")
+            log.info("The database connection has closed.")
 
             raise

@@ -116,7 +116,7 @@ class BTSClient(AbstractGatewayBookerOrderAPIClient):
 
 
 class BTSServer(GatewayBookerOrderAPIServer):
-    """Receiving commands from Booker instance with websockets and process it"""
+    """Receiving commands from Booker remote client with websockets and process it"""
 
     booker: AbstractBookerGatewayOrderAPIClient
     txs: Mapping[UUID, Tx] = {}
@@ -162,14 +162,27 @@ class BTSServer(GatewayBookerOrderAPIServer):
 
         yield None
 
-    def process_in_order_request(self, order: NewInOrder) -> None:
-        pass
+    async def process_in_order_request(self, args: NewInOrder) -> None:
+        await self.order_requests.put(args)
 
-    def process_out_order_request(self, order: NewOutOrder) -> None:
-        pass
+        yield None
+
+    async def process_out_order_request(self, args: NewOutOrder) -> None:
+        await self.order_requests.put(args)
+
+        yield None
 
     async def process_database_order(self) -> None:
         pass
 
     async def process_orders(self) -> None:
         pass
+
+
+#
+# async def gateway_ws_server():
+#     import aiohttp
+#     client_ws_stream = await aiohttp.ClientSession().ws_connect("http://0.0.0.0:8080/ws-rpc")
+#     await client_ws_stream.close()
+#
+# asyncio.run(gateway_ws_server())

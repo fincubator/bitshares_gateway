@@ -284,12 +284,12 @@ log.info(
 )
 
 try:
-    loop.create_task(start_gateway_ws_server(context_instance))
     loop.create_task(watch_account_history(context_instance))
     loop.create_task(watch_banker(context_instance))
     loop.create_task(watch_unconfirmed_operations(context_instance))
     loop.create_task(watch_blocks(context_instance))
     loop.create_task(listen_http(context_instance))
+    loop.create_task(start_gateway_ws_server(context_instance))
 
     loop.run_forever()
 finally:

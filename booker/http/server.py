@@ -1,5 +1,5 @@
 import asyncio
-import logging
+from src.utils import get_logger
 
 from aiohttp.web import (
     AppRunner as HTTPAppRunner,
@@ -11,22 +11,22 @@ from booker.app import AppContext
 
 
 async def server(runner: HTTPAppRunner) -> None:
-    logging.info("HTTP server has started.")
+    log.info("HTTP server has started.")
 
     cancel_signal = asyncio.Event()
 
     try:
         await asyncio.wait({asyncio.create_task(cancel_signal.wait())})
     except asyncio.CancelledError:
-        logging.debug("HTTP server is stopping.")
+        log.debug("HTTP server is stopping.")
 
         await runner.cleanup()
 
-        logging.info("HTTP server has stopped.")
+        log.info("HTTP server has stopped.")
 
 
 async def start_server(context: AppContext, handlers: HTTPRouteTableDef) -> None:
-    logging.debug("HTTP server is starting.")
+    log.debug("HTTP server is starting.")
 
     context.http_app.add_routes(handlers)
 

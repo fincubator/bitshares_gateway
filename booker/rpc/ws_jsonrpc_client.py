@@ -1,5 +1,5 @@
 from typing import Callable, Awaitable, Mapping, Type
-import logging
+from src.utils import get_logger
 
 import aiohttp
 from aiohttp import ClientWebSocketResponse as HTTPClientWebSocketResponse
@@ -9,15 +9,18 @@ from booker.rpc.api import APIClient
 from booker.rpc.ws_jsonrpc_api import WSJSONRPCAPIsClient
 
 
+log = get_logger("BookerWSJSONRPCClient")
+
+
 def stream_constructor(
     context: AppContext, coin: str
 ) -> Callable[[], Awaitable[HTTPClientWebSocketResponse]]:
     async def handler() -> HTTPClientWebSocketResponse:
-        logging.debug("WebSocket RPC client is starting.")
+        log.debug("WebSocket RPC client is starting.")
 
         stream = await aiohttp.ws_connect(context.config.gateway_ws_connection[coin])
 
-        logging.info("WebSocket RPC client has started.")
+        log.info("WebSocket RPC client has started.")
 
         return stream
 

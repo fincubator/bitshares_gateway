@@ -1,7 +1,7 @@
 from typing import AbstractSet
 
 import asyncio
-import logging
+from src.utils import get_logger
 
 import zmq
 from aiozmq import create_zmq_stream
@@ -11,8 +11,11 @@ from booker.rpc.api import APIServer
 from booker.rpc.zmq_jsonrpc_api import ZMQJSONRPCAPIsServer
 
 
+log = get_logger("BookerZMQJSONRPCClient")
+
+
 async def start_server(context: AppContext, handlers: AbstractSet[APIServer]) -> None:
-    logging.debug("ZeroMQ RPC server is starting.")
+    log.debug("ZeroMQ RPC server is starting.")
 
     server_stream = await create_zmq_stream(
         zmq.REP,

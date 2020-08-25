@@ -1,5 +1,5 @@
 from typing import Callable, Awaitable, Mapping, Type
-import logging
+from src.utils import get_logger
 
 import zmq
 from aiozmq import ZmqStream as ZMQStream, create_zmq_stream
@@ -9,17 +9,20 @@ from booker.rpc.api import APIClient
 from booker.rpc.zmq_jsonrpc_api import ZMQJSONRPCAPIsClient
 
 
+log = get_logger("BookerZMQJSONRPCClient")
+
+
 def stream_constructor(
     context: AppContext, coin: str
 ) -> Callable[[], Awaitable[ZMQStream]]:
     async def handler() -> ZMQStream:
-        logging.debug("ZeroMQ client is starting.")
+        log.debug("ZeroMQ client is starting.")
 
         stream = await create_zmq_stream(
             zmq.REQ, connect=context.config.gateway_zmq_connection[coin]
         )
 
-        logging.info("ZeroMQ client has started.")
+        log.info("ZeroMQ client has started.")
 
         return stream
 

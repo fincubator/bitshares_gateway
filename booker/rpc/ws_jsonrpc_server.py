@@ -1,7 +1,7 @@
 from typing import Callable, Awaitable, AbstractSet
 
 import asyncio
-import logging
+from src.utils import get_logger
 
 from aiohttp import web
 from aiohttp.web import (
@@ -12,6 +12,9 @@ from aiohttp.web import (
 from booker.app import AppContext
 from booker.rpc.api import APIServer
 from booker.rpc.ws_jsonrpc_api import WSJSONRPCAPIsServer
+
+
+log = get_logger("BookerWSJSONRPCServer")
 
 
 def ws_rpc(
@@ -32,7 +35,7 @@ def ws_rpc(
 
 
 async def start_server(context: AppContext, handlers: AbstractSet[APIServer]) -> None:
-    logging.debug("WebSocket RPC server is starting.")
+    log.debug("WebSocket RPC server is starting.")
 
     apis_server = WSJSONRPCAPIsServer()
 

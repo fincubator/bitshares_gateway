@@ -529,7 +529,7 @@ async def test_deposit_validate_less_min():
         to=testnet_user_account,
         amount=test_min_deposit * 0.99,
         asset=f"{cfg.gateway_prefix}.{cfg.gateway_distribute_asset}",
-        memo="flood",
+        memo="welcome to gateway",
     )
 
     deposit = await broadcast_tx(_deposit)

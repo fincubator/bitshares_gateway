@@ -1,6 +1,6 @@
 from typing import Callable, Awaitable, Optional, AbstractSet
 import asyncio
-import logging
+from src.utils import get_logger
 
 from aiohttp import (
     ClientWebSocketResponse as HTTPClientWebSocketResponse,
@@ -9,6 +9,9 @@ from aiohttp import (
 from aiohttp.web import WebSocketResponse as HTTPWebSocketResponse
 
 from booker.rpc.jsonrpc_api import JSONRPCAPIsClient, JSONRPCAPIsServer
+
+
+log = get_logger("BookerWSJSONRPCAPI")
 
 
 class WSJSONRPCAPIsClient(JSONRPCAPIsClient):
@@ -59,7 +62,7 @@ class WSJSONRPCAPIsServer(JSONRPCAPIsServer):
                 except asyncio.CancelledError:
                     raise
                 except BaseException as exception:
-                    logging.exception(exception)
+                    log.exception(exception)
 
                     raise exception
 
@@ -68,7 +71,7 @@ class WSJSONRPCAPIsServer(JSONRPCAPIsServer):
                 except asyncio.CancelledError:
                     raise
                 except BaseException as exception:
-                    logging.exception(exception)
+                    log.exception(exception)
 
                     continue
 
@@ -77,17 +80,17 @@ class WSJSONRPCAPIsServer(JSONRPCAPIsServer):
                 except asyncio.CancelledError:
                     raise
                 except BaseException as exception:
-                    logging.exception(exception)
+                    log.exception(exception)
 
                     raise exception
             except asyncio.CancelledError:
-                logging.debug("WebSocket RPC server is stopping.")
+                log.debug("WebSocket RPC server is stopping.")
 
                 await ws.close(
                     code=HTTPWSCloseCode.GOING_AWAY, message="Connection shutdown"
                 )
 
-                logging.info("WebSocket RPC server has stopped.")
+                log.info("WebSocket RPC server has stopped.")
 
                 raise
 
@@ -97,7 +100,7 @@ class WSJSONRPCAPIsServer(JSONRPCAPIsServer):
         new_stream = self.new_stream.wait()
         self.tasks |= {asyncio.create_task(new_stream)}
 
-        logging.info("WebSocket RPC server has started.")
+        log.info("WebSocket RPC server has started.")
 
         while True:
             tasks, self.tasks = self.tasks, {*()}

@@ -2,7 +2,7 @@ from typing import AsyncGenerator
 from decimal import Decimal
 from uuid import uuid4
 import asyncio
-import logging
+from src.utils import get_logger
 
 import psycopg2
 import sqlalchemy as sa
@@ -21,6 +21,9 @@ from booker.gateway.dto import (
 from booker.db.models import GatewayParty, Tx, Order
 
 
+log = get_logger("BookerGatewayAPI")
+
+
 async def new_in_order(context: AppContext, args: NewInOrder) -> None:
     assert args.order_type != OrderType.TRASH
     assert args.in_tx_amount >= Decimal("0.0")
@@ -34,7 +37,7 @@ async def new_in_order(context: AppContext, args: NewInOrder) -> None:
 
     while True:
         try:
-            await in_gateway_coro.send(None)
+            await in_gateway_coro.asend(None)
         except StopAsyncIteration:
             break
 
@@ -93,7 +96,7 @@ async def new_out_order(context: AppContext, args: NewOutOrder) -> None:
 
     while True:
         try:
-            await out_gateway_coro.send(None)
+            await out_gateway_coro.asend(None)
         except StopAsyncIteration:
             break
 
@@ -150,8 +153,8 @@ async def new_in_order_request(context: AppContext, args: NewInOrderRequest) -> 
     out_tx_id = uuid4()
     out_tx_query = sa.insert(Tx).values(id=out_tx_id, coin=args.out_tx_coin)
     order_id = uuid4()
-    order_query = sa.insert(Tx).values(
-        type=args.order_type, in_tx=in_tx_id, out_tx=out_tx_id
+    order_query = sa.insert(Order).values(
+        id=order_id, type=args.order_type, in_tx=in_tx_id, out_tx=out_tx_id
     )
 
     async with context.db_engine.acquire() as connection:
@@ -582,7 +585,7 @@ async def process_out_orders(context: AppContext) -> AsyncGenerator[None, None]:
 
 
 async def process_orders(context: AppContext) -> None:
-    logging.info("Orders server has started.")
+    log.info("Orders server has started.")
 
     try:
         process_in_orders_coro = process_in_orders(context)
@@ -593,7 +596,7 @@ async def process_orders(context: AppContext) -> None:
                 await process_in_orders_coro.asend(None)
                 await process_out_orders_coro.asend(None)
             except asyncio.CancelledError as exception:
-                logging.debug("Orders server is stopping.")
+                log.debug("Orders server is stopping.")
 
                 try:
                     await process_in_orders_coro.athrow(exception)
@@ -607,10 +610,10 @@ async def process_orders(context: AppContext) -> None:
 
                 raise
     except asyncio.CancelledError:
-        logging.info("Orders server has stopped.")
+        log.info("Orders server has stopped.")
 
         raise
     except BaseException as exception:
-        logging.exception(exception)
+        log.exception(exception)
 
         raise exception

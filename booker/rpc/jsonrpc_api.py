@@ -1,7 +1,7 @@
 from typing import Any, Optional
 from abc import abstractmethod
 from uuid import UUID, uuid4
-import logging
+from src.utils import get_logger
 
 import marshmallow
 from marshmallow.exceptions import ValidationError as MarshmallowSchemaValidationError
@@ -16,6 +16,9 @@ from booker.rpc.api import (
     APIsClient,
     APIsServer,
 )
+
+
+log = get_logger("BookerJSONRPCAPI")
 
 
 class JSONRPCAPIResultAndError(Exception):
@@ -105,13 +108,13 @@ class JSONRPCAPIsClient(APIsClient):
                 jsonrpc="2.0", method=method, id=uuid4(), params=params
             )
 
-            logging.debug(f"client: request from client: {request}")
+            log.debug(f"client: request from client: {request}")
 
             request = request_schema.dumps(request)
             response = await self._message_send_parent_transport_1(request)
             response = response_schema.loads(response)
 
-            logging.debug(f"client: response from server: {response}")
+            log.debug(f"client: response from server: {response}")
 
             if response.result is not None and response.error is not None:
                 raise JSONRPCAPIResultAndError("Result and error are both set.")
@@ -134,7 +137,7 @@ class JSONRPCAPIsClient(APIsClient):
 
             return response.result
         except MarshmallowSchemaValidationError as exception:
-            logging.debug(exception)
+            log.debug(exception)
 
             raise DTOInvalidType(f"Invalid payload type: {exception}")
 
@@ -149,13 +152,13 @@ class JSONRPCAPIsServer(APIsServer):
             try:
                 request = request_schema.loads(request)
 
-                logging.debug(f"server: request from client: {request}")
+                log.debug(f"server: request from client: {request}")
 
                 internal_params = internal_params_schema.load(
                     request.params, unknown=marshmallow.EXCLUDE
                 )
             except MarshmallowSchemaValidationError as exception:
-                logging.debug(exception)
+                log.debug(exception)
 
                 response = JSONRPCResponse(
                     jsonrpc="2.0",
@@ -166,7 +169,7 @@ class JSONRPCAPIsServer(APIsServer):
                     id=request.id,
                 )
 
-                logging.debug(f"server: response from server: {response}")
+                log.debug(f"server: response from server: {response}")
 
                 response = response_schema.dumps(response)
 
@@ -194,7 +197,7 @@ class JSONRPCAPIsServer(APIsServer):
                     jsonrpc="2.0", result=result, error=None, id=request.id
                 )
             except APIMethodNotFound as exception:
-                logging.debug(exception)
+                log.debug(exception)
 
                 response = JSONRPCResponse(
                     jsonrpc="2.0",
@@ -210,7 +213,7 @@ class JSONRPCAPIsServer(APIsServer):
                 APIUnknownError,
                 APIUnknownResult,
             ) as exception:
-                logging.debug(exception)
+                log.debug(exception)
 
                 response = JSONRPCResponse(
                     jsonrpc="2.0",
@@ -221,7 +224,7 @@ class JSONRPCAPIsServer(APIsServer):
                     id=request.id,
                 )
             except BaseException as exception:
-                logging.debug(exception)
+                log.debug(exception)
 
                 response = JSONRPCResponse(
                     jsonrpc="2.0",
@@ -232,13 +235,13 @@ class JSONRPCAPIsServer(APIsServer):
                     id=request.id,
                 )
 
-            logging.debug(f"server: response from server: {response}")
+            log.debug(f"server: response from server: {response}")
 
             response = response_schema.dumps(response)
 
             return response
 
         except MarshmallowSchemaValidationError as exception:
-            logging.debug(exception)
+            log.debug(exception)
 
             raise DTOInvalidType(f"Invalid payload type: {exception}")

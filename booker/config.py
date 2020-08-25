@@ -19,6 +19,7 @@ class Config(DataTransferClass):
     zmq_proto: str = "tcp"
     zmq_host: str = "127.0.0.1"
     zmq_port: int = 8081
+    client_transport: str = "ws"
 
     def with_environment(self) -> None:
         schema = type(self).Schema()
@@ -40,7 +41,7 @@ class Config(DataTransferClass):
                 }
             )
         except MarshmallowSchemaValidationError as exception:
-            logging.debug(exception)
+            log.debug(exception)
 
             raise DTOInvalidType(f"Invalid payload type: {exception}")
 

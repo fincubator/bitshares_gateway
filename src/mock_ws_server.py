@@ -3,7 +3,7 @@ from src.utils import get_logger
 import aiohttp
 
 
-log = get_logger("ws_server")
+log = get_logger("WS Server")
 
 
 def using_server(server: WSJSONRPCAPIsServer) -> Callable[[Request], WebSocketResponse]:
