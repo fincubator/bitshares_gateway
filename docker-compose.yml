@@ -26,6 +26,9 @@ services:
     ports:
       - ${HTTP_PORT}:${HTTP_PORT}
       - ${WS_PORT}:${WS_PORT}
+    expose:
+      - "${HTTP_PORT}"
+      - "${WS_PORT}"
     depends_on:
       - postgres
 
