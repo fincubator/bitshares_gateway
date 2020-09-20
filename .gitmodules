@@ -1,0 +1,4 @@
+[submodule "booker"]
+	path = booker
+	url = https://github.com/fincubator/booker/
+	branch = master
