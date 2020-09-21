@@ -1,4 +1,5 @@
 import asyncio
+import aiohttp
 from getpass import getpass
 import signal
 
@@ -270,9 +271,11 @@ class AppContext:
         )
 
         try:
+            loop.run_until_complete(self.booker_cli.connect(self.cfg.booker_host, self.cfg.booker_port, "/ws-rpc"))
             log.info(
                 f"BookerClient ready to connect  ws://{self.cfg.booker_host}:{self.cfg.booker_port}/"
             )
+            loop.run_until_complete(self.booker_cli.disconnect())
         except Exception as ex:
             log.warning(f"Unable to connect booker: {ex}")
 
