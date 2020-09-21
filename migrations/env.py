@@ -5,6 +5,14 @@ from sqlalchemy import pool
 
 from alembic import context
 
+import sys, os
+
+
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+)
+
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -23,6 +31,28 @@ target_metadata = None
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+# Interpret the config file for Python logging.
+# This line sets up loggers basically.
+fileConfig(config.config_file_name)
+
+# here we allow ourselves to pass interpolation vars to alembic.ini
+# fron the host env
+section = config.config_ini_section
+
+db_environment_keys = {
+    "DATABASE_DRIVER",
+    "DATABASE_HOST",
+    "DATABASE_PORT",
+    "DATABASE_USERNAME",
+    "DATABASE_PASSWORD",
+    "DATABASE_NAME",
+}
+
+for db_environment_key in db_environment_keys:
+    config.set_section_option(
+        section, db_environment_key, os.environ.get(db_environment_key)
+    )
 
 
 def run_migrations_offline():

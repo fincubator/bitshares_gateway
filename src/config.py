@@ -79,7 +79,9 @@ class Config:
                 log.info("Successfully loaded user's .env configuration")
 
             except Exception as ex:
-                log.info(f"Unable to load config from .env file: {ex}. Using default values")
+                log.info(
+                    f"Unable to load config from .env file: {ex}. Using default values"
+                )
                 _env_params = {}
 
             try:
@@ -109,7 +111,9 @@ class Config:
                 log.info("Successfully loaded user's gateway.yml configuration")
 
             except Exception as ex:
-                log.info(f"Unable to load config from gateway.yml file: {ex}. Using default values")
+                log.info(
+                    f"Unable to load config from gateway.yml file: {ex}. Using default values"
+                )
                 _gateway_yml_params = {}
 
             if _env_params and _gateway_yml_params:

@@ -30,16 +30,23 @@ from src.http_server import start_http_server
 
 from src.config import BITSHARES_BLOCK_TIME, Config
 
-# from booker.gateway_api.gateway_side_client import GatewaySideClient
-# from booker.gateway_api.gateway_server import GatewayServer
+from booker.gateway_api.gateway_side_client import GatewaySideClient
+from src.bts_ws_rpc_server import BtsWsRPCServer
+
 log = get_logger("Gateway")
 
 
 class AppContext:
-
     def __init__(self):
         self.cfg = Config()
         self.cfg.with_environment()
+
+        self.booker_cli = GatewaySideClient(
+            ctx=self, host=self.cfg.booker_host, port=self.cfg.booker_port
+        )
+        self.ws_server = BtsWsRPCServer(
+            host=self.cfg.ws_host, port=self.cfg.ws_port, ctx=self
+        )
 
     def unlock_wallet(self):
         account_name = self.cfg.account
@@ -53,7 +60,9 @@ class AppContext:
         if not enc_keys:
             log.info(f"{account_name} is new account. Let's add and encrypt keys\n")
             memo_key = getpass(f"Please Enter {account_name}'s active private key\n")
-            active_key = getpass(f"Ok.\nPlease Enter {account_name}'s memo active key\n")
+            active_key = getpass(
+                f"Ok.\nPlease Enter {account_name}'s memo active key\n"
+            )
             password = getpass(
                 "Ok\nNow enter password to encrypt keys\n"
                 "Warning! Currently there is NO WAY TO RECOVER your password!!! Please be careful!\n"
@@ -61,7 +70,9 @@ class AppContext:
             password_confirm = getpass("Repeat the password\n")
             if password == password_confirm:
                 save_wallet_keys(
-                    account_name, encrypt(active_key, password), encrypt(memo_key, password)
+                    account_name,
+                    encrypt(active_key, password),
+                    encrypt(memo_key, password),
                 )
                 log.info(
                     f"Successfully encrypted and stored in file config/.{account_name}.keys"
@@ -127,7 +138,6 @@ class AppContext:
             )
             return True
 
-
     async def watch_account_history(self):
         """
         BitShares Gateway account monitoring
@@ -168,7 +178,9 @@ class AppContext:
                         # Just refresh last account operations in database
                         await update_last_operation(
                             conn,
-                            account_name=self.bitshares_instance.config["default_account"],
+                            account_name=self.bitshares_instance.config[
+                                "default_account"
+                            ],
                             last_operation=op_id,
                         )
 
@@ -181,12 +193,14 @@ class AppContext:
                 unconfirmed_ops = await get_unconfirmed_operations(conn)
                 for op in unconfirmed_ops:
 
-                    op_dto = rowproxy_to_dto(op, BitsharesOperation, BitSharesOperationDTO)
+                    op_dto = rowproxy_to_dto(
+                        op, BitsharesOperation, BitSharesOperationDTO
+                    )
                     is_changed = await confirm_op(op_dto)
                     if is_changed:
                         updated_op = BitsharesOperation(**op_dto.__dict__)
                         await update_operation(conn, updated_op)
-                        # ctx.ws_booker_client.update_order
+                        # self.ws_booker_client.update_tx
 
             await asyncio.sleep(BITSHARES_BLOCK_TIME)
 
@@ -224,9 +238,9 @@ class AppContext:
             loop.create_task(coro_to_restart())
 
     @staticmethod
-    async def shutdown(loop, signal=None):
-        if signal:
-            log.info(f"Received exit signal {signal.name}...")
+    async def shutdown(loop, _signal=None):
+        if _signal:
+            log.info(f"Received exit signal {_signal.name}...")
         else:
             log.info("No exit signal")
 
@@ -244,33 +258,31 @@ class AppContext:
         signals = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
         for s in signals:
             loop.add_signal_handler(
-                s, lambda s=s: asyncio.create_task(self.shutdown(loop, signal=s))
+                s, lambda s=s: asyncio.create_task(self.shutdown(loop, _signal=s))
             )
         loop.set_exception_handler(self.ex_handler)
 
         self.db = loop.run_until_complete(init_database(self.cfg))
         self.bitshares_instance = loop.run_until_complete(
             init_bitshares(
-                account=self.cfg.account,
-                keys=self.cfg.keys,
-                node=self.cfg.nodes,
+                account=self.cfg.account, keys=self.cfg.keys, node=self.cfg.nodes
             )
         )
 
-        # self.booker_cli = GatewaySideClient(ctx=self, host=self.cfg.booker_host, port=self.cfg.booker_port)
         try:
-            log.info(f"BookerClient ready to connect  ws://{self.cfg.booker_host}:{self.cfg.booker_port}")
+            log.info(
+                f"BookerClient ready to connect  ws://{self.cfg.booker_host}:{self.cfg.booker_port}/"
+            )
         except Exception as ex:
             log.warning(f"Unable to connect booker: {ex}")
 
-        # self.ws_server = GatewayServer(
-        #     host=self.cfg.ws_host,
-        #     port=self.cfg.ws_port,
-        #     ctx=self
-        # )
-        # loop.run_until_complete(self.ws_server.start())
-        log.info(f"Starting websocket server on ws://{self.cfg.ws_host}:{self.cfg.ws_port}/")
-
+        try:
+            loop.run_until_complete(self.ws_server.start())
+            log.info(
+                f"Started websockets rpc server on ws://{self.cfg.ws_host}:{self.cfg.ws_port}/"
+            )
+        except Exception as ex:
+            log.warning(f"Unable to start websocker rpc server: {ex}")
 
         if not self.cfg.is_test_env:
             self.unlock_wallet()
