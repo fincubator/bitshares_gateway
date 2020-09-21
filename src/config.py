@@ -33,7 +33,7 @@ class Config:
     control_center_url: str = ""
 
     booker_host: str = "0.0.0.0"
-    booker_port: int = 8080
+    booker_port: int = 8888
 
     core_asset: str = "TEST"
     gateway_prefix: str = "FINTEHTEST"
@@ -70,6 +70,8 @@ class Config:
                     "http_port": getenv("HTTP_PORT"),
                     "ws_host": getenv("WS_HOST"),
                     "ws_port": getenv("WS_PORT"),
+                    "booker_host": getenv("BOOKER_HOST"),
+                    "booker_port": getenv("BOOKER_PORT")
                 }
                 for name, value in _env_params.items():
                     if not value:
@@ -89,7 +91,6 @@ class Config:
                     open(f"{project_root_dir}/gateway.yml", "r")
                 )
                 _gateway_yml_params = {
-                    "booker_url": from_gateway_yml["booker_url"],
                     "core_asset": from_gateway_yml["core_asset"],
                     "gateway_prefix": from_gateway_yml["gateway_prefix"],
                     "gateway_distribute_asset": from_gateway_yml[

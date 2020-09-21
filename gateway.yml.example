@@ -26,5 +26,3 @@ native:
     http_port: 8080
     zmq_port: 9090
 
-# Booker is a coordinator between Target (this GATEWAY.ASSET) and Native (COIN) gateways
-booker_url: http://0.0.0.0:7777/
