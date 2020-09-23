@@ -19,6 +19,9 @@ jobs:
       - name: Build database container
         run: docker-compose run -d postgres
 
+      - name: Create network
+        run: docker network create finteh-network
+
       - name: Build the stack
         run: docker-compose up --build -d
 
