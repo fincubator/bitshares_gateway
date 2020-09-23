@@ -46,7 +46,7 @@ class AppContext:
             ctx=self, host=self.cfg.booker_host, port=self.cfg.booker_port
         )
         self.ws_server = BtsWsRPCServer(
-            host=self.cfg.ws_host, port=self.cfg.ws_port, ctx=self
+            host=self.cfg.http_host, port=self.cfg.http_port, ctx=self
         )
 
     def unlock_wallet(self):
@@ -271,7 +271,11 @@ class AppContext:
         )
 
         try:
-            loop.run_until_complete(self.booker_cli.connect(self.cfg.booker_host, self.cfg.booker_port, "/ws-rpc"))
+            loop.run_until_complete(
+                self.booker_cli.connect(
+                    self.cfg.booker_host, self.cfg.booker_port, "/ws-rpc"
+                )
+            )
             log.info(
                 f"BookerClient ready to connect  ws://{self.cfg.booker_host}:{self.cfg.booker_port}/"
             )
@@ -282,7 +286,7 @@ class AppContext:
         try:
             loop.run_until_complete(self.ws_server.start())
             log.info(
-                f"Started websockets rpc server on ws://{self.cfg.ws_host}:{self.cfg.ws_port}/"
+                f"Started websockets rpc server on ws://{self.cfg.http_host}:{self.cfg.http_port}/ws-rpc"
             )
         except Exception as ex:
             log.warning(f"Unable to start websocker rpc server: {ex}")
@@ -302,7 +306,7 @@ class AppContext:
             loop.create_task(self.watch_account_history())
             loop.create_task(self.watch_unconfirmed_operations())
             loop.create_task(self.watch_blocks())
-            loop.create_task(self.listen_http())
+            # loop.create_task(self.listen_http())
 
             loop.run_forever()
         finally:

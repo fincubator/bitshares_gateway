@@ -18,17 +18,14 @@ class Config:
     is_test_env: bool = True
 
     db_driver: str = "postgres+psycopg2"
-    db_host: str = "0.0.0.0"
+    db_host: str = "postgres"
     db_port: int = 5432
     db_user: str = "postgres"
     db_password: str = "postgres"
     db_database: str = "postgres"
 
     http_host: str = "0.0.0.0"
-    http_port: int = 8889
-
-    ws_host: str = "0.0.0.0"
-    ws_port: int = 9999
+    http_port: int = 9999
 
     control_center_url: str = ""
 
@@ -68,10 +65,8 @@ class Config:
                     "db_database": getenv("DATABASE_NAME"),
                     "http_host": getenv("HTTP_HOST"),
                     "http_port": getenv("HTTP_PORT"),
-                    "ws_host": getenv("WS_HOST"),
-                    "ws_port": getenv("WS_PORT"),
                     "booker_host": getenv("BOOKER_HOST"),
-                    "booker_port": getenv("BOOKER_PORT")
+                    "booker_port": getenv("BOOKER_PORT"),
                 }
                 for name, value in _env_params.items():
                     if not value:

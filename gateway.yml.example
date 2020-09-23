@@ -25,4 +25,3 @@ native:
     host: 8.8.8.8
     http_port: 8080
     zmq_port: 9090
-

@@ -5,7 +5,7 @@ from shutil import copyfile
 
 def test_config():
     c = Config()
-    assert c.http_port == 8889
+    assert c.http_port == 9999
 
 
 def test_config_with_env():
