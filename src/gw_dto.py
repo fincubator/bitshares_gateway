@@ -2,26 +2,22 @@ from typing import ClassVar, Type
 from decimal import Decimal
 from uuid import UUID
 from enum import Enum
+import dataclasses
 
 from marshmallow import Schema as MarshmallowSchema, fields
 from marshmallow_dataclass import dataclass, NewType as MarshmallowNewType
+from booker.finteh_proto.dto import (
+    DataTransferClass,
+    dataclass,
+    Amount,
+    TransactionDTO,
+    OrderDTO,
+)
 
 
 class DTOInvalidType(Exception):
     def __init__(self, message: str) -> None:
         super().__init__(message)
-
-
-@dataclass
-class DataTransferClass:
-    Schema: ClassVar[Type[MarshmallowSchema]] = MarshmallowSchema
-
-
-def AmountField(*args, **kwargs):
-    return fields.Decimal(*args, **kwargs, as_string=True)
-
-
-Amount = MarshmallowNewType("Amount", Decimal, field=AmountField)
 
 
 class OrderType(Enum):
@@ -70,3 +66,34 @@ class BitSharesOperation(DataTransferClass):
     tx_expiration: int = None
 
     error: TxError = None
+
+    memo: str = None
+
+
+def op_to_order(op_dto: BitSharesOperation):
+    BITSHARES_NEED_CONF = 5  # TODO replace with context
+
+    tx = TransactionDTO(
+        coin=op_dto.asset,
+        amount=op_dto.amount,
+        from_address=op_dto.from_account,
+        to_address=op_dto.to_account,
+        created_at=op_dto.tx_created_at,
+        confirmations=op_dto.confirmations,
+        max_confirmations=BITSHARES_NEED_CONF,
+        error=op_dto.error,
+        tx_id=f"{op_dto.op_id}:{op_dto.tx_hash}",
+    )
+
+    if op_dto.order_type == OrderType.DEPOSIT:
+        in_tx = None
+        out_tx = tx
+    elif op_dto.order_type == OrderType.DEPOSIT:
+        in_tx = tx
+        out_tx = None
+    else:
+        raise
+
+    order_dto = OrderDTO(
+        op_id=op_dto.op_id, order_type=op_dto.order_type, in_tx=in_tx, out_tx=out_tx
+    )

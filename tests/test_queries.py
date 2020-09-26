@@ -1,13 +1,17 @@
 import pytest
+from uuid import uuid4
 
 from src.db_utils.queries import *
+from src.config import Config
 from src.utils import rowproxy_to_dto
 
 from .fixtures import testnet_gateway_account_mock
 
 
 async def get_test_engine():
-    engine = await init_database()
+    c = Config()
+    c.db_host = "0.0.0.0"
+    engine = await init_database(c)
     return engine
 
 
@@ -100,7 +104,7 @@ async def test_add_operation():
 
 @pytest.mark.asyncio
 async def test_update_operation():
-    from src.dto import BitSharesOperation as BitSharesOperationDTO
+    from src.gw_dto import BitSharesOperation as BitSharesOperationDTO
 
     async with (await get_test_engine()).acquire() as conn:
         operation = BitsharesOperation(
@@ -117,7 +121,9 @@ async def test_update_operation():
         op_dto.status = TxStatus.RECEIVED_AND_CONFIRMED
 
         updated_op = BitsharesOperation(**op_dto.__dict__)
-        await update_operation(conn, updated_op)
+        await update_operation(
+            conn, updated_op, BitsharesOperation.op_id, operation.op_id
+        )
         current_value = (await get_operation(conn, 666)).status
         assert current_value == TxStatus.RECEIVED_AND_CONFIRMED
 
@@ -182,3 +188,152 @@ async def test_delete_gateway_wallet():
             conn, account_name=testnet_gateway_account_mock
         )
         assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_new_ops_for_booker():
+    from src.gw_dto import BitSharesOperation as BitSharesOperationDTO
+
+    async with (await get_test_engine()).acquire() as conn:
+
+        operation_1 = BitsharesOperation(
+            op_id=666,
+            order_type=OrderType.WITHDRAWAL,
+            to_account=testnet_gateway_account_mock,
+            status=TxStatus.RECEIVED_NOT_CONFIRMED,
+        )
+
+        operation_2 = BitsharesOperation(
+            op_id=555,
+            order_id=uuid4(),
+            order_type=OrderType.WITHDRAWAL,
+            to_account=testnet_gateway_account_mock,
+            status=TxStatus.RECEIVED_AND_CONFIRMED,
+        )
+
+        operation_3 = BitsharesOperation(
+            op_id=444,
+            order_type=OrderType.WITHDRAWAL,
+            to_account=testnet_gateway_account_mock,
+            status=TxStatus.ERROR,
+        )
+
+        await add_operation(conn, operation_1)
+        await add_operation(conn, operation_2)
+        await add_operation(conn, operation_3)
+
+        new_ops_for_booker = await get_new_ops_for_booker(conn)
+
+        await conn.execute(
+            delete(BitsharesOperation).where(BitsharesOperation.op_id == 666)
+        )
+        await conn.execute(
+            delete(BitsharesOperation).where(BitsharesOperation.op_id == 555)
+        )
+        await conn.execute(
+            delete(BitsharesOperation).where(BitsharesOperation.op_id == 444)
+        )
+
+        assert len(new_ops_for_booker) == 1
+
+
+@pytest.mark.asyncio
+async def test_get_pending_operations():
+    async with (await get_test_engine()).acquire() as conn:
+        operation_1 = BitsharesOperation(
+            op_id=666,
+            order_id=uuid4(),
+            order_type=OrderType.WITHDRAWAL,
+            to_account=testnet_gateway_account_mock,
+            status=TxStatus.RECEIVED_NOT_CONFIRMED,
+        )
+
+        operation_2 = BitsharesOperation(
+            op_id=555,
+            order_id=uuid4(),
+            order_type=OrderType.WITHDRAWAL,
+            to_account=testnet_gateway_account_mock,
+            status=TxStatus.WAIT,
+        )
+
+        operation_3 = BitsharesOperation(
+            op_id=444,
+            order_id=uuid4(),
+            tx_hash="somehash",
+            order_type=OrderType.WITHDRAWAL,
+            to_account=testnet_gateway_account_mock,
+            status=TxStatus.WAIT,
+        )
+
+        await add_operation(conn, operation_1)
+        await add_operation(conn, operation_2)
+        await add_operation(conn, operation_3)
+
+        pending_operations = await get_pending_operations(conn)
+
+        await conn.execute(
+            delete(BitsharesOperation).where(BitsharesOperation.op_id == 666)
+        )
+        await conn.execute(
+            delete(BitsharesOperation).where(BitsharesOperation.op_id == 555)
+        )
+
+        await conn.execute(
+            delete(BitsharesOperation).where(BitsharesOperation.op_id == 444)
+        )
+
+        assert len(pending_operations) == 1
+
+
+@pytest.mark.asyncio
+async def test_m():
+    from .fixtures import testnet_user_account
+
+    async with (await get_test_engine()).acquire() as conn:
+        operation_1 = BitsharesOperation(
+            order_id=uuid4(),
+            order_type=OrderType.DEPOSIT,
+            asset="FINTEHTEST.USDT",
+            amount=0.1,
+            from_account="fincubator-gateway-test",
+            to_account=testnet_user_account,
+            status=TxStatus.WAIT,
+        )
+        await add_operation(conn, operation_1)
+
+
+@pytest.mark.asyncio
+async def test_get_op_by_hash():
+    async with (await get_test_engine()).acquire() as conn:
+        operation_1 = BitsharesOperation(
+            op_id=666,
+            order_id=uuid4(),
+            order_type=OrderType.DEPOSIT,
+            tx_hash="123x",
+            asset="FINTEHTEST.USDT",
+            amount=0.1,
+            from_account="fincubator-gateway-test",
+            status=TxStatus.WAIT,
+        )
+        operation_2 = BitsharesOperation(
+            op_id=555,
+            order_id=uuid4(),
+            order_type=OrderType.DEPOSIT,
+            asset="FINTEHTEST.USDT",
+            amount=0.1,
+            from_account="fincubator-gateway-test",
+            status=TxStatus.WAIT,
+        )
+        await add_operation(conn, operation_1)
+        await add_operation(conn, operation_2)
+
+        ops = await get_operation_by_hash(conn, "123x")
+
+        await conn.execute(
+            delete(BitsharesOperation).where(BitsharesOperation.op_id == 666)
+        )
+        await conn.execute(
+            delete(BitsharesOperation).where(BitsharesOperation.op_id == 555)
+        )
+
+        assert ops.op_id == 666

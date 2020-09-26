@@ -66,6 +66,7 @@ def upgrade():
                 name="error",
             ),
         ),
+        sa.Column("memo", sa.String),
     )
 
 

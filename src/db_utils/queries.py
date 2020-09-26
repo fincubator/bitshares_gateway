@@ -4,19 +4,29 @@ from aiopg.sa.result import RowProxy
 
 from sqlalchemy.sql import insert, delete, update, select
 from src.db_utils.models import GatewayWallet, BitsharesOperation
-from src.dto import OrderType, TxStatus
+from src.gw_dto import OrderType, TxStatus, TxError
 from src.utils import get_logger, object_as_dict
 
-from config import pg_config
+from src.config import Config
 
+# TODO Dependency inj
+cfg = Config()
 
 log = get_logger("Postgres")
 
 
-async def init_database(**kwargs) -> Engine:
+async def init_database(cfg: Config) -> Engine:
     """Async engine to execute clients requests"""
-    kwargs = pg_config if not kwargs else kwargs
-    engine = await aiopg.sa.create_engine(**kwargs)
+    cfg = Config if not cfg else cfg
+    engine = await aiopg.sa.create_engine(
+        **{
+            "host": cfg.db_host,
+            "port": cfg.db_port,
+            "user": cfg.db_user,
+            "password": cfg.db_password,
+            "database": cfg.db_database,
+        }
+    )
     return engine
 
 
@@ -37,7 +47,6 @@ async def add_gateway_wallet(conn: SAConn, wallet: GatewayWallet) -> bool:
         await conn.execute(insert(GatewayWallet).values(**_wallet))
         return True
     except Exception as ex:
-        print(ex)
         return False
 
 
@@ -87,6 +96,12 @@ async def get_operation(conn: SAConn, op_id: int) -> RowProxy:
     return result
 
 
+async def insert_operation(conn: SAConn, operation: BitsharesOperation):
+    _operation = object_as_dict(operation)
+    _operation.pop("pk")
+    await conn.execute(insert(BitsharesOperation).values(**_operation))
+
+
 async def add_operation(conn: SAConn, operation: BitsharesOperation):
     isolation_level = "SERIALIZABLE"
     sql_tx = await conn.begin(isolation_level=isolation_level)
@@ -107,15 +122,58 @@ async def add_operation(conn: SAConn, operation: BitsharesOperation):
         await sql_tx.commit()
     except Exception as ex:
         log.exception(ex)
-        print(ex)
         await sql_tx.rollback()
 
 
-async def update_operation(conn: SAConn, operation: BitsharesOperation) -> None:
+async def update_operation(
+    conn: SAConn, operation: BitsharesOperation, where_key, where_value
+) -> None:
     _operation = object_as_dict(operation)
     _operation.pop("pk")
-    await conn.execute(
-        update(BitsharesOperation)
-        .values(**_operation)
-        .where(BitsharesOperation.op_id == operation.op_id)
+    if where_key == BitsharesOperation.order_id:
+        _operation.pop("order_id")
+    if where_key == BitsharesOperation.op_id:
+        _operation.pop("op_id")
+    if where_key == BitsharesOperation.tx_hash:
+        _operation.pop("tx_hash")
+
+    q = update(BitsharesOperation).values(**_operation).where(where_key == where_value)
+
+    await conn.execute(q)
+
+
+async def get_new_ops_for_booker(conn: SAConn) -> RowProxy:
+    cursor = await conn.execute(
+        select([BitsharesOperation])
+        .where(
+            (BitsharesOperation.order_id == None)
+            & (BitsharesOperation.status != TxStatus.ERROR)
+        )
+        .as_scalar()
     )
+    result = await cursor.fetchall()
+    return result
+
+
+async def get_pending_operations(conn: SAConn) -> RowProxy:
+    cursor = await conn.execute(
+        select([BitsharesOperation])
+        .where(
+            (BitsharesOperation.order_id != None)
+            & (BitsharesOperation.tx_hash == None)
+            & (BitsharesOperation.status == TxStatus.WAIT)
+        )
+        .as_scalar()
+    )
+    result = await cursor.fetchall()
+    return result
+
+
+async def get_operation_by_hash(conn: SAConn, tx_hash):
+    cursor = await conn.execute(
+        select([BitsharesOperation])
+        .where(BitsharesOperation.tx_hash == tx_hash)
+        .as_scalar()
+    )
+    result = await cursor.fetchone()
+    return result

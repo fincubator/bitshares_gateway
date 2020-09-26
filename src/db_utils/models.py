@@ -1,22 +1,13 @@
 import datetime
 
 import sqlalchemy as sa
-from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import UUID
 
 # from migrations import metadata
-from src.dto import TxStatus, TxError, OrderType
-from config import sql_conn_url
+from src.gw_dto import TxStatus, TxError, OrderType
 
 Base = declarative_base()
-
-# not-async engine for using in migrations
-engine = create_engine(sql_conn_url, echo=False)
-
-
-def create_all():
-    Base.metadata.create_all(engine)
 
 
 class GatewayWallet(Base):
@@ -52,3 +43,5 @@ class BitsharesOperation(Base):
     tx_expiration = sa.Column(sa.DateTime)
 
     error = sa.Column(sa.Enum(TxError))
+
+    memo = sa.Column(sa.String)

@@ -16,6 +16,9 @@ jobs:
       - name: Create test env
         run: cp .env.example .env
 
+      - name: Create network
+        run: docker network create finteh-network
+
       - name: Build database container
         run: docker-compose run -d postgres
 
@@ -23,4 +26,4 @@ jobs:
         run: docker-compose up --build -d
 
       - name: Run tests
-        run: docker-compose exec -T gateway pipenv run pytest
+        run: docker-compose exec -T gateway pipenv run pytest tests/

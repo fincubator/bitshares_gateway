@@ -27,10 +27,10 @@ git clone https://github.com/fincubator/bitshares_gateway
 cd bitshares_gateway
 ```
 
-Create gateway config file and fill it with your data. If not, gateway will start in testnet with
-parameters from tests dir.
+Create gateway config file and fill it with your data. If not, gateway will start in testnet with testing
+parameters.
 ```bash
-cp config/gateway.yml.example config/gateway.yml
+cp gateway.yml.example gateway.yml
 ```
 
 Create test *.env* file
@@ -44,14 +44,14 @@ cp .env.example .env
 sudo docker-compose run -d postgres
 sudo docker-compose run gateway
 ```
->Why not docker-compose up command?'
+>Why not 'docker-compose up' command?
 >> Because on production we need some interactive shell to input keys/password
 
 #### Running in testnet
 ```bash
 sudo docker-compose up --build -d
 ```
-Will be using test account from test fixtures
+Will be using default test account
 
 # How it works
 BitShares Gateway serve SINGLE bitshares asset.
@@ -74,7 +74,7 @@ simple and fast.
 
 import asyncio
 
-from src.bitshares_utils import *
+from src.blockchain.bitshares_utils import *
 
 async def issue_loop_example():
     """Setup bitshares instance"""
@@ -104,7 +104,7 @@ pipenv run pytest
 ```
 
 ##### Where is gateway wallet account private keys?
-Wallet account's keys stored as base64-encoded strings in file `config/.accountname.keys`.
+Wallet account's keys stored as base64-encoded strings in file `.accountname.keys`.
 This file will be created after first run with filled `gateway.yml` file.
 
 Example:

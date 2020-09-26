@@ -2,7 +2,7 @@
 import rncryptor
 from base64 import b64encode, b64decode
 
-from config import project_root_dir
+from src.config import project_root_dir
 
 
 def encrypt(string_to_encrypt: str, password: str) -> str:
@@ -20,9 +20,7 @@ def decrypt(encrypted_string: str, password: str) -> str:
 def get_wallet_keys(account_name: str) -> dict:
     keys = {}
     try:
-        with open(
-            f"{project_root_dir}/config/.{account_name}.keys", "r"
-        ) as secret_file:
+        with open(f"{project_root_dir}/.{account_name}.keys", "r") as secret_file:
             keys_string = secret_file.read()
             for key_param in keys_string.split("\n"):
                 key_type, key = key_param.split(":")
@@ -41,6 +39,6 @@ def save_wallet_keys(account_name: str, active_key: str, memo_key: str) -> bool:
     :param active_key: Already base64-encoded encrypted active private key of account_name
     :param memo_key: Already base64-encoded encrypted memo private key of account_name
     """
-    with open(f"{project_root_dir}/config/.{account_name}.keys", "w") as secret_file:
+    with open(f"{project_root_dir}/.{account_name}.keys", "w") as secret_file:
         secret_file.write(f"active:{active_key}\n" f"memo:{memo_key}")
     return True
