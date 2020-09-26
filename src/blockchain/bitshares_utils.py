@@ -276,6 +276,7 @@ async def validate_op(op: dict, cfg: Config = None) -> BitSharesOperationDTO:
             block_num=op["block_num"],
             tx_created_at=(await Block(op["block_num"])).time(),
             error=error,
+            memo=memo,
         )
 
         return op_dto

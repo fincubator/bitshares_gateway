@@ -43,3 +43,5 @@ class BitsharesOperation(Base):
     tx_expiration = sa.Column(sa.DateTime)
 
     error = sa.Column(sa.Enum(TxError))
+
+    memo = sa.Column(sa.String)

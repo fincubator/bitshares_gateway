@@ -6,6 +6,7 @@ from .fixtures import *
 
 
 cfg = Config()
+cfg.gateway_distribute_asset = "ETH"
 
 
 @pytest.mark.asyncio
@@ -256,7 +257,7 @@ async def test_withdrawal_validate_success():
         to=cfg.account,
         amount=0.1,
         asset=f"{cfg.gateway_prefix}.{cfg.gateway_distribute_asset}",
-        memo="eTh:123456",
+        memo="eth:123456",
     )
 
     withdrawal = await broadcast_tx(_withdrawal)
@@ -271,7 +272,7 @@ async def test_withdrawal_validate_success():
             if broadcasted_id == in_block_id:
                 txid_match = True
                 assert len(tx["operations"]) == 1
-                validated = await validate_op(op)
+                validated = await validate_op(op, cfg)
                 assert validated.order_type == OrderType.WITHDRAWAL
                 assert not validated.error != TxError.NO_ERROR
 
@@ -310,7 +311,7 @@ async def test_withdrawal_validate_bad_amount_less_min():
             if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
                 txid_match = True
                 assert len(tx["operations"]) == 1
-                validated = await validate_op(op)
+                validated = await validate_op(op, cfg)
                 assert validated.error == TxError.LESS_MIN
                 assert validated.status == TxStatus.ERROR
 
@@ -349,7 +350,7 @@ async def test_withdrawal_validate_bad_amount_greater_max():
             if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
                 txid_match = True
                 assert len(tx["operations"]) == 1
-                validated = await validate_op(op)
+                validated = await validate_op(op, cfg)
                 assert validated.error == TxError.GREATER_MAX
                 assert validated.status == TxStatus.ERROR
 
@@ -388,7 +389,7 @@ async def test_withdrawal_validate_bad_asset():
             if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
                 txid_match = True
                 assert len(tx["operations"]) == 1
-                validated = await validate_op(op)
+                validated = await validate_op(op, cfg)
                 assert validated.error == TxError.BAD_ASSET
                 assert validated.status == TxStatus.ERROR
 
@@ -426,7 +427,7 @@ async def test_withdrawal_validate_memo_no_memo():
             if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
                 txid_match = True
                 assert len(tx["operations"]) == 1
-                validated = await validate_op(op)
+                validated = await validate_op(op, cfg)
                 assert validated.error == TxError.NO_MEMO
                 assert validated.status == TxStatus.ERROR
 
@@ -464,7 +465,7 @@ async def test_withdrawal_validate_flood_memo():
             if Signed_Transaction(withdrawal).id == Signed_Transaction(tx).id:
                 txid_match = True
                 assert len(tx["operations"]) == 1
-                validated = await validate_op(op)
+                validated = await validate_op(op, cfg)
                 assert validated.error == TxError.FLOOD_MEMO
                 assert validated.status == TxStatus.ERROR
 
@@ -503,7 +504,7 @@ async def test_deposit_validate_success():
             if Signed_Transaction(deposit).id == Signed_Transaction(tx).id:
                 txid_match = True
                 assert len(tx["operations"]) == 1
-                validated = await validate_op(op)
+                validated = await validate_op(op, cfg)
                 assert validated.order_type == OrderType.DEPOSIT
                 assert validated.error == TxError.NO_ERROR
 
@@ -522,6 +523,7 @@ async def test_deposit_validate_less_min():
             testnet_user_active,
         ],
     )
+
     previous_last_op_num = await get_last_op_num(cfg.account)
 
     _deposit = await asset_transfer(
@@ -542,7 +544,7 @@ async def test_deposit_validate_less_min():
             if Signed_Transaction(deposit).id == Signed_Transaction(tx).id:
                 txid_match = True
                 assert len(tx["operations"]) == 1
-                validated = await validate_op(op)
+                validated = await validate_op(op, cfg)
                 assert validated.order_type == OrderType.DEPOSIT
                 assert validated.status == TxStatus.ERROR
                 assert validated.error == TxError.LESS_MIN
@@ -582,7 +584,7 @@ async def test_deposit_validate_greater_max():
 
                 txid_match = True
                 assert len(tx["operations"]) == 1
-                validated = await validate_op(op)
+                validated = await validate_op(op, cfg)
                 assert validated.order_type == OrderType.DEPOSIT
                 assert validated.status == TxStatus.ERROR
                 assert validated.error == TxError.GREATER_MAX

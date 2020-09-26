@@ -11,6 +11,9 @@ from booker.finteh_proto.dto import (
     ValidateAddressDTO,
 )
 
+from src.db_utils.queries import insert_operation, BitsharesOperation
+from src.gw_dto import TxStatus, OrderType
+
 
 class BtsWsRPCServer(BaseServer):
     def __init__(self, host="0.0.0.0", port=8080, ctx=None):
@@ -25,9 +28,24 @@ class BtsWsRPCServer(BaseServer):
     async def init_new_tx(self, request):
         order = OrderDTO.Schema().load(request.msg[1]["params"])
 
-        # TODO Doing check and broadcast stuff
+        out_tx = order.out_tx
+        out_tx.max_confirmations = self.ctx.cfg.max_confirmations
+        out_tx.from_address = self.ctx.cfg.account
 
-        out_tx = order.in_tx
+        async with self.ctx.db.acquire() as conn:
+            insert = await insert_operation(
+                conn,
+                BitsharesOperation(
+                    order_id=order.order_id,
+                    order_type=OrderType.DEPOSIT,
+                    asset=out_tx.coin,
+                    from_account=out_tx.from_address,
+                    to_account=out_tx.to_address,
+                    amount=out_tx.amount,
+                    status=TxStatus.WAIT,
+                ),
+            )
+
         return self.jsonrpc_response(request, out_tx)
 
     async def get_deposit_address(self, request):

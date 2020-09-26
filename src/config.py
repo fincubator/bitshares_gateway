@@ -34,7 +34,7 @@ class Config:
 
     core_asset: str = "TEST"
     gateway_prefix: str = "FINTEHTEST"
-    gateway_distribute_asset: str = "ETH"
+    gateway_distribute_asset: str = "USDT"
     account: str = "fincubator-gateway-test"
     keys: dict = {
         "active": "5JEEBPVnDwttRkbLzmFKmgoZ1ELxBMnjnEiX4JhvVfeDNQbX936",
@@ -44,8 +44,10 @@ class Config:
 
     min_deposit: float = 0.1
     min_withdrawal: float = 0.1
-    max_deposit: float = 0.1
-    max_withdrawal: float = 0.1
+    max_deposit: float = 1
+    max_withdrawal: float = 1
+
+    max_confirmations = BITSHARES_NEED_CONF
 
     def with_environment(self) -> None:
         try:
