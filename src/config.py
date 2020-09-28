@@ -95,6 +95,8 @@ class Config:
                     ],
                     "account": from_gateway_yml["account"],
                     "nodes": from_gateway_yml["nodes"],
+
+                    # TODO synchronize it with booker!
                     "min_deposit": from_gateway_yml["min_deposit"],
                     "min_withdrawal": from_gateway_yml["min_withdrawal"],
                     "max_deposit": from_gateway_yml["max_deposit"],
@@ -106,6 +108,14 @@ class Config:
                         raise AttributeError
 
                     setattr(self, name, value)
+
+                if from_gateway_yml.get("keys"):
+                    setattr(self, "keys", from_gateway_yml["keys"])
+                    log.info("Using unencrypted keys from gateway.yml file")
+                else:
+                    setattr(self, "keys", {})
+                    log.info(f"There is not keys in gateway.yml file. Try to found encrypted keys from .{self.account}.keys file")
+
                 log.info("Successfully loaded user's gateway.yml configuration")
 
             except Exception as ex:

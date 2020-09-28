@@ -434,6 +434,9 @@ class AppContext:
             )
         loop.set_exception_handler(self.ex_handler)
 
+        if not self.cfg.keys:
+            self.unlock_wallet()
+
         self.db = loop.run_until_complete(init_database(self.cfg))
         self.bitshares_instance = loop.run_until_complete(
             init_bitshares(
@@ -463,9 +466,6 @@ class AppContext:
             )
         except Exception as ex:
             log.warning(f"Unable to start websocker rpc server: {ex}")
-
-        if not self.cfg.is_test_env:
-            self.unlock_wallet()
 
         log.info(
             f"\n"

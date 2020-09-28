@@ -10,7 +10,6 @@ from .fixtures import testnet_gateway_account_mock
 
 async def get_test_engine():
     c = Config()
-    c.db_host = "0.0.0.0"
     engine = await init_database(c)
     return engine
 

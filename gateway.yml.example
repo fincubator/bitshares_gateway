@@ -18,10 +18,3 @@ max_withdrawal: 10
 # Some bitshares nodes list. Highly recommend to use your own API node
 nodes:
 - "wss://btsws.roelandp.nl/ws"
-
-# Native gateway is an mirror-gateway to another blockchain. For example, if you deploy GATEWAY.ETH target chain,
-# Native gateway is Ethereum gateway.
-native:
-    host: 8.8.8.8
-    http_port: 8080
-    zmq_port: 9090
