@@ -262,7 +262,7 @@ class AppContext:
                     )
 
                     order_dto_to_create = OrderDTO(
-                        in_tx=new_tx, out_tx=TransactionDTO(to_address=op_dto.memo)
+                        in_tx=new_tx, out_tx=TransactionDTO(to_address=op_dto.memo.split(":")[1])
                     )
 
                     order_dto = await self.booker_cli.create_order_request(
@@ -469,7 +469,7 @@ class AppContext:
 
         log.info(
             f"\n"
-            f"     Run {self.cfg.gateway_distribute_asset} BitShares gateway\n"
+            f"     Run {self.cfg.gateway_prefix} {self.cfg.gateway_distribute_asset} BitShares gateway\n"
             f"     Distribution account: {self.bitshares_instance.config['default_account']}\n"
             f"     Connected to BitShares API node: {self.bitshares_instance.rpc.url}\n"
             f"     Connected to database: {not self.db.closed}\n"
