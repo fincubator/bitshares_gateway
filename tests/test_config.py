@@ -20,4 +20,4 @@ def test_config_with_env():
         c.with_environment()
         os.remove(str(project_root_dir) + "/.env")
 
-    assert c.db_host != Config.db_host
+    assert c.is_test_env != Config.is_test_env

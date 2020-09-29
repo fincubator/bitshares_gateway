@@ -233,9 +233,11 @@ async def test_await_new_account_ops():
 
 @pytest.mark.asyncio
 async def test_get_last_op_num():
-    await init_bitshares(account=cfg.account, node=cfg.nodes, keys=cfg.keys)
+    instance = await init_bitshares(account=cfg.account, node=cfg.nodes, keys=cfg.keys)
     last_op = await get_last_op_num(cfg.account)
     assert isinstance(last_op, int)
+
+    await instance.rpc.connection.disconnect()
 
 
 @pytest.mark.asyncio
@@ -278,6 +280,8 @@ async def test_withdrawal_validate_success():
 
     assert txid_match
 
+    await instance.rpc.connection.disconnect()
+
 
 @pytest.mark.asyncio
 async def test_withdrawal_validate_bad_amount_less_min():
@@ -316,6 +320,8 @@ async def test_withdrawal_validate_bad_amount_less_min():
                 assert validated.status == TxStatus.ERROR
 
     assert txid_match
+
+    await instance.rpc.connection.disconnect()
 
 
 @pytest.mark.asyncio
@@ -356,6 +362,8 @@ async def test_withdrawal_validate_bad_amount_greater_max():
 
     assert txid_match
 
+    await instance.rpc.connection.disconnect()
+
 
 @pytest.mark.asyncio
 async def test_withdrawal_validate_bad_asset():
@@ -395,6 +403,8 @@ async def test_withdrawal_validate_bad_asset():
 
     assert txid_match
 
+    await instance.rpc.connection.disconnect()
+
 
 @pytest.mark.asyncio
 async def test_withdrawal_validate_memo_no_memo():
@@ -432,6 +442,8 @@ async def test_withdrawal_validate_memo_no_memo():
                 assert validated.status == TxStatus.ERROR
 
     assert txid_match
+
+    await instance.rpc.connection.disconnect()
 
 
 @pytest.mark.asyncio
@@ -471,6 +483,8 @@ async def test_withdrawal_validate_flood_memo():
 
     assert txid_match
 
+    await instance.rpc.connection.disconnect()
+
 
 @pytest.mark.asyncio
 async def test_deposit_validate_success():
@@ -509,6 +523,8 @@ async def test_deposit_validate_success():
                 assert validated.error == TxError.NO_ERROR
 
     assert txid_match
+
+    await instance.rpc.connection.disconnect()
 
 
 @pytest.mark.asyncio
@@ -551,6 +567,8 @@ async def test_deposit_validate_less_min():
 
     assert txid_match
 
+    await instance.rpc.connection.disconnect()
+
 
 @pytest.mark.asyncio
 async def test_deposit_validate_greater_max():
@@ -591,10 +609,12 @@ async def test_deposit_validate_greater_max():
 
     assert txid_match
 
+    await instance.rpc.connection.disconnect()
+
 
 @pytest.mark.asyncio
 async def test_confirm_old_op():
-    await init_bitshares(account=cfg.account, node=cfg.nodes, keys=cfg.keys)
+    instance = await init_bitshares(account=cfg.account, node=cfg.nodes, keys=cfg.keys)
 
     op_dto = BitSharesOperationDTO(
         op_id=43571314,
@@ -614,10 +634,12 @@ async def test_confirm_old_op():
     assert op_dto.status == TxStatus.RECEIVED_AND_CONFIRMED
     assert op_dto.confirmations > 0
 
+    await instance.rpc.connection.disconnect()
+
 
 @pytest.mark.asyncio
 async def test_get_tx_hash_from_op_success():
-    await init_bitshares(account=cfg.account, node=cfg.nodes, keys=cfg.keys)
+    instance = await init_bitshares(account=cfg.account, node=cfg.nodes, keys=cfg.keys)
 
     account = await Account(cfg.account)
     history_agen = account.history()
@@ -627,10 +649,14 @@ async def test_get_tx_hash_from_op_success():
     assert tx_hash
     assert isinstance(tx_hash, str)
 
+    await instance.rpc.connection.disconnect()
+
 
 @pytest.mark.asyncio
 async def test_validate_bitshares_account():
-    await init_bitshares(account=cfg.account, node=cfg.nodes, keys=cfg.keys)
+    instance = await init_bitshares(account=cfg.account, node=cfg.nodes, keys=cfg.keys)
 
     assert await validate_bitshares_account("kwaskoff")
     assert not await validate_bitshares_account("1kwaskoff")
+
+    await instance.rpc.connection.disconnect()
