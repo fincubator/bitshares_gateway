@@ -444,6 +444,8 @@ class AppContext:
             )
         )
 
+        assert self.bitshares_instance.config["default_account"] == self.cfg.account
+
         loop.run_until_complete(self.synchronize())
 
         try:

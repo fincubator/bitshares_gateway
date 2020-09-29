@@ -207,9 +207,9 @@ async def validate_op(op: dict, cfg: Config = None) -> BitSharesOperationDTO:
             error = TxError.BAD_ASSET
 
         # Validate account
-        if from_account.name == instance.config["default_account"]:
+        if from_account.name == cfg.account:
             order_type = OrderType.DEPOSIT
-        elif to.name == instance.config["default_account"]:
+        elif to.name == cfg.account:
             order_type = OrderType.WITHDRAWAL
         else:
             raise  # Just pretty code, this situation is impossible
