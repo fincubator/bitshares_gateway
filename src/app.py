@@ -262,7 +262,8 @@ class AppContext:
                     )
 
                     order_dto_to_create = OrderDTO(
-                        in_tx=new_tx, out_tx=TransactionDTO(to_address=op_dto.memo.split(":")[1])
+                        in_tx=new_tx,
+                        out_tx=TransactionDTO(to_address=op_dto.memo.split(":")[1]),
                     )
 
                     order_dto = await self.booker_cli.create_order_request(

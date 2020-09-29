@@ -95,7 +95,6 @@ class Config:
                     ],
                     "account": from_gateway_yml["account"],
                     "nodes": from_gateway_yml["nodes"],
-
                     # TODO synchronize it with booker!
                     "min_deposit": from_gateway_yml["min_deposit"],
                     "min_withdrawal": from_gateway_yml["min_withdrawal"],
@@ -114,7 +113,9 @@ class Config:
                     log.info("Using unencrypted keys from gateway.yml file")
                 else:
                     setattr(self, "keys", {})
-                    log.info(f"There is not keys in gateway.yml file. Try to found encrypted keys from .{self.account}.keys file")
+                    log.info(
+                        f"There is not keys in gateway.yml file. Try to found encrypted keys from .{self.account}.keys file"
+                    )
 
                 log.info("Successfully loaded user's gateway.yml configuration")
 

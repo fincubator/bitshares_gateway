@@ -10,6 +10,7 @@ from .fixtures import testnet_gateway_account_mock
 
 async def get_test_engine():
     c = Config()
+    c.with_environment()
     engine = await init_database(c)
     return engine
 
@@ -29,6 +30,8 @@ async def test_add_gateway_wallet():
         first_result = await add_gateway_wallet(conn, wallet)
         second_result = await add_gateway_wallet(conn, wallet)
 
+    await delete_gateway_wallet(conn, testnet_gateway_account_mock)
+
     assert first_result
     assert second_result is False
 
@@ -36,24 +39,33 @@ async def test_add_gateway_wallet():
 @pytest.mark.asyncio
 async def test_get_gateway_wallet():
     async with (await get_test_engine()).acquire() as conn:
+        wallet = GatewayWallet(account_name=testnet_gateway_account_mock)
+        r = await add_gateway_wallet(conn, wallet)
+        assert r
         result: GatewayWallet = await get_gateway_wallet(
             conn, account_name=testnet_gateway_account_mock
         )
-    assert result
-    assert testnet_gateway_account_mock == result.account_name
-    assert not result.last_operation
-    assert not result.last_parsed_block
+
+        assert result
+        assert testnet_gateway_account_mock == result.account_name
+        assert not result.last_operation
+        assert not result.last_parsed_block
+
+        await delete_gateway_wallet(conn, testnet_gateway_account_mock)
 
 
 @pytest.mark.asyncio
 async def test_update_last_parsed_block():
     async with (await get_test_engine()).acquire() as conn:
+        wallet = GatewayWallet(account_name=testnet_gateway_account_mock)
+        r = await add_gateway_wallet(conn, wallet)
         await update_last_parsed_block(
             conn, account_name=testnet_gateway_account_mock, last_parsed_block=666
         )
         result: GatewayWallet = await get_gateway_wallet(
             conn, account_name=testnet_gateway_account_mock
         )
+        await delete_gateway_wallet(conn, testnet_gateway_account_mock)
         assert result.last_parsed_block == 666
         assert isinstance(result.last_parsed_block, int)
 
@@ -61,12 +73,16 @@ async def test_update_last_parsed_block():
 @pytest.mark.asyncio
 async def test_update_last_operation():
     async with (await get_test_engine()).acquire() as conn:
+        wallet = GatewayWallet(account_name=testnet_gateway_account_mock)
+        await add_gateway_wallet(conn, wallet)
         await update_last_operation(
             conn, account_name=testnet_gateway_account_mock, last_operation=13
         )
         gateway: GatewayWallet = await get_gateway_wallet(
             conn, account_name=testnet_gateway_account_mock
         )
+        await delete_gateway_wallet(conn, testnet_gateway_account_mock)
+
         assert gateway.last_operation == 13
         assert isinstance(gateway.last_operation, int)
 
@@ -74,6 +90,10 @@ async def test_update_last_operation():
 @pytest.mark.asyncio
 async def test_add_operation():
     async with (await get_test_engine()).acquire() as conn1:
+        wallet = GatewayWallet(
+            account_name=testnet_gateway_account_mock, last_operation=1
+        )
+        await add_gateway_wallet(conn1, wallet)
         current_op = (
             await get_gateway_wallet(conn1, account_name=testnet_gateway_account_mock)
         ).last_operation
@@ -98,9 +118,10 @@ async def test_add_operation():
     await conn2.execute(
         delete(BitsharesOperation).where(BitsharesOperation.op_id == 666)
     )
-    await update_last_operation(conn1, testnet_gateway_account_mock, current_op)
+    await delete_gateway_wallet(conn2, testnet_gateway_account_mock)
 
 
+# TODO
 @pytest.mark.asyncio
 async def test_update_operation():
     from src.gw_dto import BitSharesOperation as BitSharesOperationDTO
@@ -191,8 +212,6 @@ async def test_delete_gateway_wallet():
 
 @pytest.mark.asyncio
 async def test_get_new_ops_for_booker():
-    from src.gw_dto import BitSharesOperation as BitSharesOperationDTO
-
     async with (await get_test_engine()).acquire() as conn:
 
         operation_1 = BitsharesOperation(
@@ -282,23 +301,6 @@ async def test_get_pending_operations():
         )
 
         assert len(pending_operations) == 1
-
-
-@pytest.mark.asyncio
-async def test_m():
-    from .fixtures import testnet_user_account
-
-    async with (await get_test_engine()).acquire() as conn:
-        operation_1 = BitsharesOperation(
-            order_id=uuid4(),
-            order_type=OrderType.DEPOSIT,
-            asset="FINTEHTEST.USDT",
-            amount=0.1,
-            from_account="fincubator-gateway-test",
-            to_account=testnet_user_account,
-            status=TxStatus.WAIT,
-        )
-        await add_operation(conn, operation_1)
 
 
 @pytest.mark.asyncio
