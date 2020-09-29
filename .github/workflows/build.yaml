@@ -18,6 +18,9 @@ jobs:
       - name: Create test env
         run: cp .env.example .env
 
+      - name: Create test gateway.yml
+        run: cp gateway.yml.example gateway.yml
+
       - name: Create network
         run: docker network create finteh-network
 
