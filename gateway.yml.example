@@ -22,3 +22,4 @@ max_withdrawal: 10
 # Some bitshares nodes list. Highly recommend to use your own API node
 nodes:
 - "wss://testnet.dex.trading/"
+
