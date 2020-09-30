@@ -2,7 +2,7 @@ version: '3.2'
 
 services:
 
-  postgres:
+  postgres_bitshares:
       image: postgres:10
       container_name: gateway_postgres
       volumes:
@@ -17,7 +17,7 @@ services:
       networks:
         - finteh-network
 
-  gateway:
+  bitshares_gateway:
     build: .
     container_name: gateway
     volumes:
@@ -30,7 +30,7 @@ services:
     expose:
       - "${HTTP_PORT}"
     depends_on:
-      - postgres
+      - postgres_bitshares
     networks:
       - finteh-network
 
