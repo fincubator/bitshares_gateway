@@ -25,7 +25,7 @@ jobs:
         run: docker network create finteh-network
 
       - name: Build database container
-        run: docker-compose run -d bitshares_postgres
+        run: docker-compose run -d postgres_bitshares
 
       - name: Build the stack
         run: docker-compose up --build -d
