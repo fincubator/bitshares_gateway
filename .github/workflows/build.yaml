@@ -31,4 +31,4 @@ jobs:
         run: docker-compose up --build -d
 
       - name: Run tests
-        run: docker-compose exec -T gateway pipenv run pytest tests/
+        run: docker-compose exec -T bitshares_gateway pipenv run pytest tests/
