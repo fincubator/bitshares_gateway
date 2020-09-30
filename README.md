@@ -23,7 +23,7 @@ sudo apt install git docker.io docker-compose
 
 Clone the repository:
 ```bash
-git clone https://github.com/fincubator/bitshares_gateway
+git clone --recurse-submodules https://github.com/fincubator/bitshares_gateway
 cd bitshares_gateway
 ```
 
