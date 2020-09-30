@@ -95,7 +95,6 @@ class Config:
                     ],
                     "account": from_gateway_yml["account"],
                     "nodes": from_gateway_yml["nodes"],
-
                     # TODO synchronize it with booker!
                     "min_deposit": from_gateway_yml["min_deposit"],
                     "min_withdrawal": from_gateway_yml["min_withdrawal"],
